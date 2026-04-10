@@ -1,0 +1,26 @@
+# Node/React
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Python/FastAPI
+backend/__pycache__/
+*.pyc
+.env
+backend/history.db
+
+# Virtual Environments
+venv/
+env/
+.venv/
+
+# IDE/System
+.vscode/
+.idea/
+.DS_Store
+models/
+# Ignore large datasets and heavy models (Optional: Remove # if you want to push them)
+*.zip
+.claude/
+mlflow.db
+project/

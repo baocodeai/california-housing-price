@@ -1,0 +1,24 @@
+{
+  "svr_pipeline": {
+    "model__C": 0.30103557686746285,
+    "model__epsilon": 0.05326964650459664,
+    "model__gamma": 0.1631394619094374,
+    "model__kernel": "rbf"
+  },
+  "knn_pipeline": {
+    "model__n_neighbors": 9,
+    "model__p": 1,
+    "model__weights": "distance"
+  },
+  "dt_pipeline": {
+    "model__max_depth": 9,
+    "model__min_samples_leaf": 10,
+    "model__min_samples_split": 15
+  },
+  "rf_pipeline": {
+    "model__max_depth": 29,
+    "model__min_samples_leaf": 1,
+    "model__min_samples_split": 2,
+    "model__n_estimators": 358
+  }
+}
