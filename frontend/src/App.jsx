@@ -251,6 +251,54 @@ function App() {
         </section>
 
         <section className="dashboard">
+          {/* Panel 3: Map Protocol */}
+          <div className="panel" style={{ gridColumn: '1 / 2', gridRow: '1 / 3', display: 'flex', flexDirection: 'column' }}>
+            <div className="panel-title">
+              GEOGRAPHICAL DISTRIBUTION <MapIcon size={18} />
+            </div>
+            <div style={{ position: 'relative', width: '100%', flexGrow: 1, minHeight: '550px', zIndex: 0 }}>
+              <MapContainer center={[36.77, -119.41]} zoom={6} scrollWheelZoom={false} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'var(--bg-primary)', cursor: 'crosshair' }}>
+                <MapClickHandler />
+                <TileLayer
+                  attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
+                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                />
+
+                {/* California Exact GeoJSON Border */}
+                {caliGeoJSON && (
+                  <GeoJSON
+                    key="california-border"
+                    data={caliGeoJSON}
+                    style={{ color: 'var(--text-muted)', fillColor: 'transparent', weight: 2, dashArray: '4, 4' }}
+                  />
+                )}
+
+                {history.map(row => (
+                  <CircleMarker
+                    key={`hist-${row.id}`}
+                    center={[parseFloat(row.latitude), parseFloat(row.longitude)]}
+                    radius={5}
+                    pathOptions={{ color: 'transparent', fillColor: 'var(--text-muted)', fillOpacity: 0.5 }}
+                  >
+                    <LeafletTooltip direction="top" opacity={1}>
+                      Price: ${parseFloat(row.predicted_price).toLocaleString()}
+                    </LeafletTooltip>
+                  </CircleMarker>
+                ))}
+
+                <CircleMarker
+                  center={[features.latitude, features.longitude]}
+                  radius={8}
+                  pathOptions={{ color: 'var(--accent)', fillColor: 'var(--accent)', fillOpacity: 0.9, weight: 2 }}
+                >
+                  <LeafletTooltip direction="top" opacity={1} permanent={false}>
+                    CURRENT TARGET
+                  </LeafletTooltip>
+                </CircleMarker>
+              </MapContainer>
+            </div>
+          </div>
+
           {/* Panel 1: RMSE Comparison */}
           <div className="panel">
             <div className="panel-title">
@@ -299,54 +347,6 @@ function App() {
                   <Scatter name="Houses" data={scatterData} fill="var(--accent)" shape="square" />
                 </ScatterChart>
               </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Panel 3: Map Protocol */}
-          <div className="panel" style={{ gridColumn: '1 / -1' }}>
-            <div className="panel-title">
-              GEOGRAPHICAL DISTRIBUTION <MapIcon size={18} />
-            </div>
-            <div style={{ width: '100%', height: 350, zIndex: 0 }}>
-              <MapContainer center={[36.77, -119.41]} zoom={6} scrollWheelZoom={false} style={{ height: '100%', width: '100%', backgroundColor: 'var(--bg-primary)', cursor: 'crosshair' }}>
-                <MapClickHandler />
-                <TileLayer
-                  attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
-                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                />
-
-                {/* California Exact GeoJSON Border */}
-                {caliGeoJSON && (
-                  <GeoJSON
-                    key="california-border"
-                    data={caliGeoJSON}
-                    style={{ color: 'var(--text-muted)', fillColor: 'transparent', weight: 2, dashArray: '4, 4' }}
-                  />
-                )}
-
-                {history.map(row => (
-                  <CircleMarker
-                    key={`hist-${row.id}`}
-                    center={[parseFloat(row.latitude), parseFloat(row.longitude)]}
-                    radius={5}
-                    pathOptions={{ color: 'transparent', fillColor: 'var(--text-muted)', fillOpacity: 0.5 }}
-                  >
-                    <LeafletTooltip direction="top" opacity={1}>
-                      Price: ${parseFloat(row.predicted_price).toLocaleString()}
-                    </LeafletTooltip>
-                  </CircleMarker>
-                ))}
-
-                <CircleMarker
-                  center={[features.latitude, features.longitude]}
-                  radius={8}
-                  pathOptions={{ color: 'var(--accent)', fillColor: 'var(--accent)', fillOpacity: 0.9, weight: 2 }}
-                >
-                  <LeafletTooltip direction="top" opacity={1} permanent={false}>
-                    CURRENT TARGET
-                  </LeafletTooltip>
-                </CircleMarker>
-              </MapContainer>
             </div>
           </div>
 

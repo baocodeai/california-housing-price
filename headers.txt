@@ -1,0 +1,29 @@
+# California Housing Price Prediction
+## 1. Import Libraries
+## 2. Load Data
+### Giải thích các cột
+## 3. Data Overview
+### Phân tích Missing Values
+## 4. EDA — Exploratory Data Analysis
+### 4.1 Univariate Analysis
+#### Target: `median_house_value`
+#### Feature: `housing_median_age`
+#### Categorical Feature: `ocean_proximity`
+### 4.2 Bivariate Analysis
+#### Feature vs Target — Scatter Plots
+#### Correlation Analysis
+#### Ocean Proximity vs Target
+### 4.3 Geographic Analysis — Phân tích không gian
+## 5. Kết luận EDA & Quyết định
+### 5.1 Những vấn đề phát hiện trong dữ liệu
+### 5.2 Những phát hiện quan trọng từ EDA
+### 5.3 Quyết định xử lý dữ liệu
+## 6. Data Preparation
+### Pipeline
+## 7. Model Training & Hyperparameter Tuning
+### 7.1 Baseline Model
+### 7.2. Hyperparameter Tuning
+### 7.3 Ensemble Models
+## 9. Model Evaluation
+## Lưu model và kết quả tunning
+### Load Model Và Test

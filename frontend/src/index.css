@@ -5,7 +5,8 @@
   --bg-primary: #0b0c10;
   --bg-secondary: #000000;
   --bg-panel: #111111;
-  --accent: #ff4500; /* Neon Orange */
+  --accent: #ff4500;
+  /* Neon Orange */
   --accent-muted: rgba(255, 69, 0, 0.2);
   --text-main: #f0f0f0;
   --text-muted: #888888;
@@ -14,7 +15,7 @@
 
   --font-mono: 'JetBrains Mono', monospace;
   --font-display: 'Oswald', sans-serif;
-  
+
   --spacing-base: 1rem;
   --border-width: 2px;
 }
@@ -43,7 +44,12 @@ body {
   border-color: var(--accent);
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-display);
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -79,13 +85,16 @@ button:active {
 ::-webkit-scrollbar {
   width: 10px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--bg-primary);
   border-left: 1px solid var(--border-color);
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--border-color);
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent);
 }
