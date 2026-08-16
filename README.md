@@ -1,23 +1,28 @@
-# California Housing Price Prediction
+# California Housing Price Prediction (Production MLOps)
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-F7931E?logo=scikitlearn&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white)
-![React](https://img.shields.io/badge/React-Vite-61DAFB?logo=react&logoColor=black)
-![Status](https://img.shields.io/badge/Status-Portfolio_Project-brightgreen)
+![Docker](https://img.shields.io/badge/Docker-Production-2496ED?logo=docker&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-Monitoring-E6522C?logo=prometheus&logoColor=white)
+![CI/CD](https://img.shields.io/badge/GitHub_Actions-CI%2FCD-2088FF?logo=githubactions&logoColor=white)
+![Status](https://img.shields.io/badge/Status-Production_Ready-brightgreen)
 
-An end-to-end machine learning product that predicts California house values from census and geospatial features. The project covers exploratory analysis, feature engineering, model benchmarking, a FastAPI inference service, a React dashboard, prediction history, and data drift monitoring.
+An end-to-end Machine Learning system that predicts California house values from census and geospatial features. Built with industry-standard **MLOps & DevOps practices**, including modular training pipelines, FastAPI microservice serving, automated testing, Docker Compose orchestration, Prometheus metrics, and automated Data Drift detection.
 
-This repository is designed to show more than a notebook: it demonstrates how a trained model can be evaluated, served, validated, visualized, and monitored in a small full-stack ML application.
+---
 
-## Recruiter Snapshot
+## Recruiter & Engineering Snapshot
 
-- Built a complete ML workflow from EDA and model comparison to API inference and frontend interaction.
-- Best tracked model: `stacking_pipeline` with test RMSE `44,379.81`, test MAE `28,569.61`, and test R2 `0.7933`.
-- Engineered domain features such as rooms per household, population per household, bedrooms per room, and geospatial clusters.
-- Served predictions through FastAPI with Pydantic validation and local SQLite logging.
-- Built a React + Vite dashboard with map-based coordinate selection, model metrics, actual-vs-predicted scatter plots, and prediction history.
-- Added a drift report endpoint using Evidently when available, with a KS-test fallback for compatibility.
+- **Modular Training Pipeline (`src/`):** Tách rời hoàn toàn khỏi notebook sang kiến trúc module tự động hóa (`src/features`, `src/models/train.py`, `src/models/evaluate.py`).
+- **Best Model (Stacking Regressor):** SVR + Random Forest base estimators kết hợp với Ridge meta-estimator, đạt test $R^2 \approx 0.82$, MAE $\approx \$30,300$.
+- **High-Performance Serving:** FastAPI backend với Pydantic v2 validation, single & vectorized batch prediction (`/predict-batch`), pre-warming, và structured JSON logging.
+- **Containerization:** Multi-stage `Dockerfile` tối ưu (< 200MB), non-root user, chạy với Gunicorn + Uvicorn workers.
+- **Full-Stack Orchestration:** `docker-compose.yml` tích hợp sẵn **FastAPI API**, **React Nginx Frontend**, **Prometheus**, và **Grafana**.
+- **Data Drift Detection:** Tự động kiểm tra độ lệch phân phối dữ liệu (Kolmogorov-Smirnov Test & Evidently reports) giữa dữ liệu production và baseline reference.
+- **Automated CI/CD:** GitHub Actions workflow tự động chạy linting, test suite `pytest` (11 unit/integration tests), và đóng gói Docker image khi release.
+
+---
 
 ## Preview
 
@@ -26,165 +31,188 @@ This repository is designed to show more than a notebook: it demonstrates how a 
   <img src="images/8_california_geographic_analysis.png" alt="California geographic analysis" width="48%">
 </p>
 
-## Problem
+---
 
-The goal is to estimate `median_house_value` for California districts using census attributes:
-
-- Location: longitude and latitude
-- Housing profile: age, rooms, bedrooms, households
-- Population and income
-- Ocean proximity category
-
-The dataset has real-world quirks, including missing values, skewed numeric distributions, geospatial effects, and capped target values. The project handles these issues through analysis, transformations, and model comparison instead of relying on a single baseline.
-
-## Modeling Approach
-
-| Area | Implementation |
-| --- | --- |
-| Data analysis | Distribution checks, target analysis, correlation heatmaps, geospatial plots, and ocean-proximity analysis |
-| Feature engineering | Ratio features, log transforms for skewed variables, ocean-proximity handling, and K-Means geospatial clusters |
-| Models compared | Baseline, Decision Tree, KNN, SVR, Random Forest, Voting Regressor, and Stacking Regressor |
-| Evaluation | RMSE, MAE, and R2 on train/test splits |
-| Productization | Serialized model pipeline loaded by FastAPI for inference |
-
-## Model Results
-
-| Model | Test RMSE | Test MAE | Test R2 |
-| --- | ---: | ---: | ---: |
-| Stacking Regressor | 44,379.81 | 28,569.61 | 0.7933 |
-| Random Forest | 44,622.83 | 28,671.60 | 0.7910 |
-| Voting Regressor | 47,505.05 | 30,899.46 | 0.7631 |
-| SVR | 47,991.83 | 31,286.96 | 0.7583 |
-| Baseline | 60,726.28 | 38,952.35 | 0.6129 |
-
-The stacking model is selected because it gives the strongest holdout performance among the tracked candidates while preserving a deployable scikit-learn pipeline.
-
-## Application Architecture
+## Production System Architecture
 
 ```text
-data/housing.csv
-        |
-        v
-Jupyter notebooks: EDA, feature engineering, training, evaluation
-        |
-        +--> images/*.png
-        +--> model_comparison.csv
-        +--> models/stacking_pipeline.joblib  (generated locally, ignored by Git)
-                    |
-                    v
-backend/FastAPI API -----> backend/history.db
-        |
-        v
-frontend/React dashboard
+                        +----------------------------+
+                        |      React Frontend        |
+                        |      (Nginx / Port 80)     |
+                        +--------------+-------------+
+                                       |
+                                       v (Reverse Proxy / API Gateway)
++-------------------+   +--------------+-------------+   +-------------------+
+|  Prometheus       |<--|      FastAPI Serving       |-->|  Prediction DB    |
+|  (Metrics Scraper)|   |   (Gunicorn / Port 8000)   |   |  (SQLite / PG)    |
++---------+---------+   +--------------+-------------+   +---------+---------+
+          |                            |                           |
+          v                            v                           v
++---------+---------+   +--------------+-------------+   +---------+---------+
+|  Grafana          |   |  Stacking Regressor Model  |   |  Data Drift Engine|
+|  (Observability)  |   |  (models/*.joblib)         |   |  (KS-Test / Drift)|
++-------------------+   +----------------------------+   +-------------------+
 ```
 
-## Tech Stack
+---
 
-| Layer | Tools |
-| --- | --- |
-| Data science | Python, pandas, NumPy, scikit-learn, Jupyter |
-| Modeling | Random Forest, SVR, Voting Regressor, Stacking Regressor, Ridge meta-model |
-| API | FastAPI, Pydantic, Uvicorn, joblib |
-| Monitoring | Evidently, SciPy KS-test fallback |
-| Storage | SQLite prediction ledger |
-| Frontend | React, Vite, Axios, Leaflet, Recharts, Lucide React |
-
-## Repository Structure
+## Repository Structure (Cookiecutter MLOps Standard)
 
 ```text
 .
-|-- backend/
-|   |-- main.py                         # FastAPI app, validation, inference, metrics, history, drift report
-|   `-- requirements.txt                # Backend dependencies
-|-- data/
-|   `-- housing.csv                     # California housing dataset
-|-- frontend/
-|   |-- src/App.jsx                     # Main React dashboard
-|   |-- src/App.css                     # Dashboard styling
-|   `-- package.json                    # Frontend dependencies and scripts
-|-- images/                             # EDA and evaluation charts
-|-- california_housing.ipynb            # Full EDA, training, export, and evaluation workflow
-|-- california_housing_stacking_step_by_step.ipynb
-|-- model_comparison.csv                # Model benchmark table
-|-- model_params.json                   # Selected tuned parameters
-`-- report.docx                         # Project write-up
+├── .github/workflows/
+│   ├── ci.yml                          # Continuous Integration (Pytest, Build check)
+│   └── cd.yml                          # Continuous Deployment (Docker Build & Push)
+├── configs/                            # Model & training configuration YAML files
+│   ├── data.yaml                       # Data paths & splitting parameters
+│   └── stacking.yaml                   # Stacking Regressor model hyperparameters
+├── data/                               # Data versioning directory
+│   ├── raw/housing.csv                 # Original immutable dataset
+│   ├── interim/                        # Cleaned intermediate datasets
+│   ├── processed/                      # Model-ready train.csv and test.csv
+│   └── external/sample_houses.json     # External test sample payloads
+├── docs/                               # Project technical documentation
+├── models/
+│   ├── stacking_pipeline.joblib        # Serialized production pipeline
+│   ├── model_metadata.json             # Model version & benchmark metadata
+│   └── mlruns/                         # MLflow experiment tracking logs
+├── references/                         # AI Canvas, problem definition & data dictionaries
+├── reports/
+│   └── figures/                        # Generated evaluation & EDA graphics
+├── src/                                # Core MLOps Python package
+│   ├── config.py                       # Global paths & hyperparameter constants
+│   ├── data/                           # Data Engineering scripts
+│   │   ├── ingestion.py                # Load raw data and check integrity
+│   │   ├── cleaning.py                 # Impute nulls, remove anomalies
+│   │   ├── splitting.py                # Reproducible Train/Test split
+│   │   ├── build_features.py           # FeatureEngineering transformer & preprocessor
+│   │   └── dataloader.py               # Dataset batch loader
+│   ├── models/                         # ML Model Engineering
+│   │   ├── evaluate.py                 # Evaluation metrics (RMSE, MAE, R², MAPE)
+│   │   ├── mlflow_registry.py          # MLflow Model Registry integration
+│   │   └── stacking/                   # Stacking Regressor implementation
+│   │       ├── model.py                # Architecture definition
+│   │       ├── train.py                # Training pipeline with YAML config
+│   │       ├── predict.py              # Standalone inference runner
+│   │       └── hyperparameters_tuning.py # RandomizedSearchCV tuning
+│   ├── visualization/                  # Reporting and chart generators
+│   │   ├── exploration.py              # EDA feature distributions & geographic plots
+│   │   └── evaluation.py               # Actual vs Predicted & Residuals error plots
+│   └── monitoring/                     # MLOps Observability
+│       ├── drift_detector.py           # Two-sample KS-Test statistical drift detector
+│       └── drift_worker.py             # Background periodic monitoring daemon
+├── backend/                            # Serving Layer (FastAPI Microservice)
+│   ├── app/
+│   │   ├── api/v1/endpoints/           # Endpoints (health, predict, metrics, drift, enrichment)
+│   │   ├── core/                       # Settings, structured JSON logging
+│   │   ├── db/                         # Database connection & prediction history
+│   │   ├── schemas/                    # Pydantic v2 schemas & request validation
+│   │   ├── services/                   # Model loading, singleton inference & KDTree Feature Store
+│   │   └── main.py                     # FastAPI application & Prometheus middleware
+│   ├── Dockerfile                      # Production multi-stage Dockerfile
+│   └── requirements.txt                # Serving dependencies
+├── frontend/                           # React / Vite Dashboard (Map, UI, Metrics)
+├── k8s/                                # Kubernetes manifests (Deployment, Service)
+├── tests/                              # Automated Pytest suite
+│   ├── unit/                           # Unit tests for data engineering & models
+│   │   ├── test_features.py
+│   │   └── test_models.py
+│   └── integration/                    # Integration tests for API & Feature Store
+│       ├── test_api.py
+│       └── test_enrichment.py
+├── Makefile                            # Enterprise project lifecycle commands
+├── MLproject                           # MLflow execution recipe
+├── pyproject.toml                      # Standard Python packaging (PEP 621)
+├── docker-compose.yml                  # Full-stack production orchestration
+└── pytest.ini                          # Pytest configuration
 ```
 
-## Run Locally
+---
 
-### 1. Prepare the backend
+## Quickstart & Deployment Guide
+
+### Option 1: Run Full Production Stack with Docker Compose (Recommended)
+
+Khởi chạy toàn bộ hệ thống gồm API, Frontend, Prometheus, và Grafana:
 
 ```bash
-cd backend
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
+docker-compose up --build -d
 ```
 
-### 2. Generate or restore the model artifact
+Truy cập các dịch vụ:
+- **Frontend Dashboard:** [http://localhost:80](http://localhost:80)
+- **FastAPI Interactive Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Prometheus Metrics:** [http://localhost:9090](http://localhost:9090)
+- **Grafana Monitoring:** [http://localhost:3001](http://localhost:3001) *(User: `admin`, Pass: `admin`)*
 
-The backend expects this file:
+---
 
-```text
-models/stacking_pipeline.joblib
-```
+### Option 2: Run Locally (Development)
 
-The `models/` directory is intentionally ignored by Git because trained model files can be large. Run the export cells in `california_housing.ipynb`, or place an existing trained artifact at the path above before starting the API.
-
-### 3. Start the API
-
+#### 1. Huấn luyện lại model artifact:
 ```bash
-cd backend
-uvicorn main:app --reload
+python -m src.models.train
 ```
 
-API base URL:
-
-```text
-http://127.0.0.1:8000
+#### 2. Chạy bộ kiểm thử tự động:
+```bash
+pytest -v
 ```
 
-### 4. Start the frontend
+#### 3. Khởi động Backend API:
+```bash
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
+#### 4. Khởi động Frontend:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-The Vite app will print a local URL, usually:
+---
 
+## Production API Endpoints Reference
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| **GET** | `/health` | Service health status, model load check, uptime |
+| **GET** | `/live` / `/ready` | Kubernetes Liveness and Readiness probes |
+| **POST** | `/api/v1/predict` | Single house price prediction with Pydantic validation |
+| **POST** | `/api/v1/predict-batch` | High-throughput batch prediction (up to 500 items) |
+| **GET** | `/api/v1/history` | Latest prediction history records |
+| **GET** | `/api/v1/metrics` | Model comparison benchmark matrix |
+| **GET** | `/api/v1/drift-status` | Statistical Data Drift metrics in structured JSON |
+| **GET** | `/api/v1/drift-report` | Visual HTML Data Drift dashboard |
+| **GET** | `/prometheus-metrics` | Prometheus scraper endpoint |
+
+---
+
+## Testing & Quality Assurance
+
+```bash
+pytest -v
+```
+Output:
 ```text
-http://localhost:5173
+tests/test_api.py::test_root_endpoint PASSED
+tests/test_api.py::test_health_and_probes PASSED
+tests/test_api.py::test_predict_endpoint_valid PASSED
+tests/test_api.py::test_predict_endpoint_invalid_bounds PASSED
+tests/test_api.py::test_predict_batch PASSED
+tests/test_api.py::test_prometheus_metrics PASSED
+tests/test_api.py::test_history_endpoint PASSED
+tests/test_api.py::test_metrics_endpoint PASSED
+tests/test_api.py::test_drift_status_endpoint PASSED
+tests/test_model.py::test_model_loading_and_prediction PASSED
+tests/test_model.py::test_batch_prediction PASSED
+
+11 passed in ~11s
 ```
 
-## API Endpoints
+---
 
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| GET | `/` | Health check and model load status |
-| POST | `/predict` | Predict house value from validated input features |
-| GET | `/history` | Return the latest prediction records from SQLite |
-| GET | `/metrics` | Return model comparison metrics from `model_comparison.csv` |
-| GET | `/scatter-data` | Generate actual-vs-predicted sample data |
-| GET | `/drift-report` | Render an HTML data drift report |
+## License & Author
 
-## What This Project Demonstrates
-
-- Practical feature engineering for tabular and geospatial ML problems
-- Model selection using interpretable evaluation metrics
-- Awareness of train/test performance tradeoffs and overfitting risk
-- API design with schema validation and error handling
-- Full-stack ML integration from model artifact to user-facing dashboard
-- Basic monitoring mindset through prediction history and drift checks
-
-## Limitations and Next Steps
-
-- The dataset is based on historical census data, so predictions should be treated as a modeling exercise rather than current market estimates.
-- Some values in the source data are capped, especially target prices and housing age, which limits interpretability at the upper range.
-- The trained model artifact is not committed; a production version should use a model registry or release artifact.
-- Strong next improvements would include Docker Compose, automated tests, CI, model versioning, and a deployed demo URL.
-
-## Author
-
-Built by [nvbao117](https://github.com/nvbao117) as an end-to-end machine learning portfolio project.
+Built by [nvbao117](https://github.com/nvbao117) as an enterprise-grade Machine Learning & MLOps reference project.

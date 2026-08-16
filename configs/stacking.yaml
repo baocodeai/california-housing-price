@@ -1,0 +1,64 @@
+# Cấu hình huấn luyện và siêu tham số mô hình Stacking Regressor
+data:
+  train_path: "data/processed/train.csv"              # Đường dẫn tập train
+  test_path: "data/processed/test.csv"                # Đường dẫn tập test
+  raw_path: "data/raw/housing.csv"                    # Đường dẫn dữ liệu thô
+  log_target: true                                    # Biến đổi log target (log(median_house_value))
+
+# Thông tin định danh mô hình
+model:
+  name: "california_housing_stacking_pipeline"
+  version: "1.0.0"
+  output_model_path: "models/stacking_pipeline.joblib"
+  output_metadata_path: "models/model_metadata.json"
+
+# Cấu hình kỹ thuật đặc trưng
+feature_engineering:
+  use_geo_cluster: true                               # Sử dụng phân cụm địa lý KMeans
+  n_geo_clusters: 10                                  # Số cụm phân loại không gian
+  random_state: 42
+
+# Siêu tham số các mô hình cơ sở (Base Models)
+base_models:
+  svr:
+    C: 30.0
+    epsilon: 0.1
+    gamma: "scale"
+  random_forest:
+    n_estimators: 300
+    max_depth: 28
+    min_samples_split: 2
+    min_samples_leaf: 1
+    random_state: 42
+    n_jobs: -1
+
+# Siêu tham số mô hình tổng hợp (Meta Model)
+meta_model:
+  ridge:
+    alpha: 1.0
+    random_state: 42
+
+# Thiết lập Stacking ensemble
+stacking:
+  cv: 3                                               # Số fold Cross-Validation nội bộ
+  n_jobs: -1                                          # Chạy song song toàn bộ CPU cores
+
+# Không gian tìm kiếm siêu tham số cho RandomizedSearchCV
+tuning:
+  n_iter: 10
+  cv: 3
+  scoring: "neg_root_mean_squared_error"
+  random_state: 42
+  param_distributions:
+    model__svr__C: [10.0, 20.0, 30.0, 50.0]
+    model__svr__epsilon: [0.05, 0.1, 0.2]
+    model__rf__n_estimators: [100, 200, 300]
+    model__rf__max_depth: [20, 28, 35, null]
+    model__final_estimator__alpha: [0.1, 1.0, 10.0]
+
+# Cấu hình theo dõi với MLflow
+mlflow:
+  enabled: false                                      # Bật/tắt tự động log vào MLflow
+  experiment_name: "california_housing_stacking"      # Tên thí nghiệm
+  tracking_uri: "models/mlruns"                       # Thư mục lưu trữ artifact MLflow
+  log_models: true

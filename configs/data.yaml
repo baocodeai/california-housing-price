@@ -1,0 +1,19 @@
+# Cấu hình kỹ thuật dữ liệu (Data Engineering Configuration)
+data:
+  raw_data_path: "data/raw/housing.csv"               # Đường dẫn dữ liệu thô gốc
+  interim_data_path: "data/interim/housing_cleaned.csv" # Dữ liệu trung gian sau khi làm sạch
+  processed_train_path: "data/processed/train.csv"     # Dữ liệu huấn luyện đã chuẩn bị xong
+  processed_test_path: "data/processed/test.csv"       # Dữ liệu kiểm thử đã chuẩn bị xong
+  external_data_path: "data/external/sample_houses.json" # Dữ liệu mẫu test từ ứng dụng
+
+# Cấu hình chia tách tập Train / Test
+splitting:
+  test_size: 0.2                                      # Tỷ lệ tập kiểm thử (20%)
+  random_seed: 42                                     # Hạt giống ngẫu nhiên để tái lập kết quả
+  stratify_by_income_cat: false
+
+# Cấu hình làm sạch dữ liệu
+cleaning:
+  impute_strategy: "median"                           # Chiến lược điền khuyết bằng trung vị
+  impute_column: "total_bedrooms"                     # Cột được điền khuyết
+  filter_capped_values: false                         # Lọc giá trị trần (tuổi nhà > 52, giá > 500k)

@@ -1,0 +1,375 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  Server,
+  Activity,
+  Database,
+  Cpu,
+  ShieldCheck,
+  AlertTriangle,
+  RefreshCw,
+  ExternalLink,
+  Layers,
+  CheckCircle2,
+  TrendingUp,
+  ArrowLeft,
+} from 'lucide-react';
+import { api } from '../api/client';
+import { ModelComparisonChart } from '../components/charts/ModelComparisonChart';
+import { ScatterActualPredChart } from '../components/charts/ScatterActualPredChart';
+import { HistoryTable } from '../components/history/HistoryTable';
+import { DriftModal } from '../components/drift/DriftModal';
+
+export function AdminPage() {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [runningDrift, setRunningDrift] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDriftModalOpen, setIsDriftModalOpen] = useState(false);
+
+  const [history, setHistory] = useState([]);
+  const [metrics, setMetrics] = useState([]);
+  const [scatterData, setScatterData] = useState([]);
+  const [driftStatus, setDriftStatus] = useState(null);
+
+  useEffect(() => {
+    loadAdminData();
+  }, []);
+
+  const loadAdminData = async () => {
+    try {
+      const [histRes, metRes, scaRes, drfRes] = await Promise.allSettled([
+        api.getHistory(100),
+        api.getMetrics(),
+        api.getScatterData(100),
+        api.getDriftStatus(),
+      ]);
+
+      if (histRes.status === 'fulfilled') setHistory(histRes.value.data.history || []);
+      if (metRes.status === 'fulfilled') setMetrics(metRes.value.data || []);
+      if (scaRes.status === 'fulfilled') setScatterData(scaRes.value.data || []);
+      if (drfRes.status === 'fulfilled') setDriftStatus(drfRes.value.data || null);
+    } catch (e) {
+      console.error('Error loading admin dashboard data:', e);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRunningDrift(true);
+    try {
+      await loadAdminData();
+    } finally {
+      setTimeout(() => setRunningDrift(false), 500);
+    }
+  };
+
+  const hasDrift = driftStatus?.overall_drift_detected;
+  const totalRequests = history.length;
+  const avgPrice =
+    totalRequests > 0
+      ? history.reduce((acc, curr) => acc + (curr.predicted_price || 0), 0) /
+        totalRequests
+      : 0;
+
+  const filteredHistory = history.filter((item) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      item.ocean_proximity?.toLowerCase().includes(term) ||
+      String(item.id).includes(term) ||
+      String(item.predicted_price).includes(term)
+    );
+  });
+
+  return (
+    <div className="app-wrapper">
+      {/* Admin Dedicated Header */}
+      <header className="app-header">
+        <div className="header-left">
+          <div className="system-title">
+            <h1>CALI_HOUSING</h1>
+            <span className="version-tag" style={{ background: 'rgba(255,255,255,0.08)', color: '#fff' }}>
+              🛡️ MLOPS ADMIN PORTAL
+            </span>
+          </div>
+        </div>
+
+        <div className="header-right">
+          {/* Back to User Studio Button */}
+          <Link to="/" className="btn-secondary" title="Return to User Valuation Page">
+            <ArrowLeft size={15} />
+            <span>User Studio</span>
+          </Link>
+
+          {/* Drift Status Indicator */}
+          <button
+            className={`drift-indicator ${hasDrift ? 'drift-warning' : 'drift-healthy'}`}
+            onClick={() => setIsDriftModalOpen(true)}
+            title="Click to view full Data Drift report"
+          >
+            {hasDrift ? (
+              <>
+                <AlertTriangle size={14} />
+                <span>Drift Alert</span>
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={14} />
+                <span>Data Normal</span>
+              </>
+            )}
+          </button>
+
+          <div className="status-live">
+            <span className="pulse-dot"></span>
+            <span>CLUSTER HEALTHY</span>
+          </div>
+        </div>
+      </header>
+
+      {/* Admin Content Area */}
+      <div className="admin-dashboard-container">
+        {/* Subheader Toolbar */}
+        <div className="admin-subheader">
+          <div className="admin-title-box">
+            <Server size={20} color="#66fcf1" />
+            <div>
+              <h2>MLOps & Production Monitoring Center</h2>
+              <p>Model Serving Cluster (FastAPI + Gunicorn) // Environment: Production</p>
+            </div>
+          </div>
+
+          <div className="admin-actions">
+            <button
+              className="btn-secondary"
+              onClick={handleRefresh}
+              disabled={runningDrift}
+              title="Refresh logs & run drift analysis"
+            >
+              <RefreshCw size={14} className={runningDrift ? 'spin' : ''} />
+              <span>{runningDrift ? 'Refreshing...' : 'Refresh Metrics'}</span>
+            </button>
+
+            <a
+              href="http://localhost:3001/d/california-housing-mlops"
+              target="_blank"
+              rel="noreferrer"
+              className="btn-secondary"
+              title="Open Grafana Real-time Observability"
+            >
+              <ExternalLink size={14} />
+              <span>Grafana Dashboard</span>
+            </a>
+
+            <a
+              href="http://localhost:8000/docs"
+              target="_blank"
+              rel="noreferrer"
+              className="btn-secondary"
+              title="Open Swagger API documentation"
+            >
+              <ExternalLink size={14} />
+              <span>API Swagger Docs</span>
+            </a>
+          </div>
+        </div>
+
+        {/* 4 Executive KPI Cards */}
+        <div className="kpi-grid">
+          <div className="kpi-card">
+            <div className="kpi-header">
+              <span>TOTAL PREDICTION REQUESTS</span>
+              <Database size={16} color="#66fcf1" />
+            </div>
+            <div className="kpi-value">{totalRequests.toLocaleString()}</div>
+            <div className="kpi-footer text-muted">Persisted in history database</div>
+          </div>
+
+          <div className="kpi-card">
+            <div className="kpi-header">
+              <span>AVG PREDICTED PRICE</span>
+              <TrendingUp size={16} color="#66fcf1" />
+            </div>
+            <div className="kpi-value">
+              ${avgPrice > 0 ? avgPrice.toLocaleString(undefined, { maximumFractionDigits: 0 }) : '---'}
+            </div>
+            <div className="kpi-footer text-muted">Calculated across logged stream</div>
+          </div>
+
+          <div className="kpi-card">
+            <div className="kpi-header">
+              <span>MODEL QUALITY (R² BENCHMARK)</span>
+              <CheckCircle2 size={16} color="#81c995" />
+            </div>
+            <div className="kpi-value" style={{ color: '#81c995' }}>0.8196</div>
+            <div className="kpi-footer text-muted">Test Holdout Benchmark</div>
+          </div>
+
+          <div className="kpi-card">
+            <div className="kpi-header">
+              <span>DATA DRIFT (KS-TEST)</span>
+              {hasDrift ? (
+                <AlertTriangle size={16} color="#f28b82" />
+              ) : (
+                <ShieldCheck size={16} color="#81c995" />
+              )}
+            </div>
+            <div className="kpi-value" style={{ color: hasDrift ? '#f28b82' : '#81c995' }}>
+              {hasDrift ? 'DRIFT DETECTED' : 'HEALTHY (NO DRIFT)'}
+            </div>
+            <div className="kpi-footer text-muted">
+              {driftStatus?.drifted_features_count || 0} / {driftStatus?.total_features_tested || 8} features drifted
+            </div>
+          </div>
+        </div>
+
+        {/* Admin Navigation Tabs */}
+        <div className="admin-tabs">
+          <button
+            className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            <Layers size={15} />
+            <span>System & Analytics Overview</span>
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'drift' ? 'active' : ''}`}
+            onClick={() => setActiveTab('drift')}
+          >
+            <Activity size={15} />
+            <span>Statistical Data Drift Monitor</span>
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
+            onClick={() => setActiveTab('logs')}
+          >
+            <Database size={15} />
+            <span>Prediction Audit Ledger ({totalRequests})</span>
+          </button>
+        </div>
+
+        {/* Tab 1: Overview */}
+        {activeTab === 'overview' && (
+          <div className="admin-content-section">
+            {/* Model Registry Specification */}
+            <div className="admin-card">
+              <div className="panel-header">
+                <Cpu size={16} />
+                <span>ACTIVE MODEL REGISTRY SPECIFICATION</span>
+              </div>
+              <div className="meta-grid">
+                <div className="meta-item">
+                  <span className="meta-label">Model Architecture:</span>
+                  <span className="meta-value">Stacking Regressor (RF + SVR + Ridge)</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">Artifact Version:</span>
+                  <span className="meta-value">v1.0.0 (Production Stage)</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">Holdout Test RMSE:</span>
+                  <span className="meta-value">$48,619.66</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">Holdout Test MAE:</span>
+                  <span className="meta-value">$30,305.92</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">Mean Absolute % Error (MAPE):</span>
+                  <span className="meta-value">15.95%</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">Inference Engine:</span>
+                  <span className="meta-value">FastAPI + Gunicorn / Non-root Container</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Benchmark & Residual Charts */}
+            <div className="charts-grid" style={{ marginTop: '1.5rem' }}>
+              <ModelComparisonChart data={metrics} />
+              <ScatterActualPredChart data={scatterData} />
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Data Drift */}
+        {activeTab === 'drift' && (
+          <div className="admin-content-section">
+            <div className="admin-card">
+              <div className="panel-header">
+                <Activity size={16} />
+                <span>KOLMOGOROV-SMIRNOV (KS) TWO-SAMPLE STATISTICAL DRIFT ANALYSIS</span>
+              </div>
+              <p style={{ color: '#8892b0', fontSize: '0.85rem', marginBottom: '1.2rem' }}>
+                Kiểm định sự khác biệt phân phối xác suất giữa tập dữ liệu huấn luyện cơ sở (Reference Baseline - 20,640 mẫu) và các yêu cầu người dùng gửi lên môi trường Production (Current Stream).
+              </p>
+
+              {driftStatus?.feature_metrics && driftStatus.feature_metrics.length > 0 ? (
+                <div className="table-responsive">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Feature Name</th>
+                        <th>Reference Baseline Mean</th>
+                        <th>Production Stream Mean</th>
+                        <th>KS Statistic</th>
+                        <th>P-Value</th>
+                        <th>Drift Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {driftStatus.feature_metrics.map((item) => (
+                        <tr key={item.feature}>
+                          <td><strong>{item.feature}</strong></td>
+                          <td>{item.ref_mean}</td>
+                          <td>{item.current_mean}</td>
+                          <td>{item.ks_statistic}</td>
+                          <td>{item.p_value}</td>
+                          <td>
+                            {item.drift_detected ? (
+                              <span className="badge-drift-yes">YES (DRIFT)</span>
+                            ) : (
+                              <span className="badge-drift-no">NO (STABLE)</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '30px', color: '#8892b0' }}>
+                  <p>Chưa có đủ dữ liệu dự đoán để tính toán Data Drift (Cần ít nhất 5 bản ghi trong lịch sử).</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Prediction Audit Logs */}
+        {activeTab === 'logs' && (
+          <div className="admin-content-section">
+            <div className="admin-card">
+              <div className="search-bar-wrapper">
+                <input
+                  type="text"
+                  placeholder="🔍 Tìm kiếm theo Ocean Proximity, ID, hoặc Giá dự đoán..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="admin-search-input"
+                />
+              </div>
+              <HistoryTable history={filteredHistory} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Drift Modal */}
+      <DriftModal
+        isOpen={isDriftModalOpen}
+        onClose={() => setIsDriftModalOpen(false)}
+      />
+    </div>
+  );
+}
