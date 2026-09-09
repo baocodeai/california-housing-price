@@ -3,11 +3,13 @@ Kiểm thử đơn vị (Unit Tests) cho Model Service và các hàm đánh giá
 """
 import pytest
 import numpy as np
+from backend.app.core.config import settings
 from backend.app.services.model_service import ModelService
 from backend.app.schemas.housing import HouseFeatures
 from src.models.evaluate import calculate_metrics
 
 
+@pytest.mark.skipif(not settings.MODEL_PATH.exists(), reason="Model artifact not in git repository (stored on S3 / Model Registry)")
 def test_model_loading_and_single_prediction():
     """Kiểm tra nạp mô hình và suy luận đơn lẻ thành công."""
     service = ModelService()
@@ -32,6 +34,7 @@ def test_model_loading_and_single_prediction():
     assert result["inference_latency_ms"] < 1500
 
 
+@pytest.mark.skipif(not settings.MODEL_PATH.exists(), reason="Model artifact not in git repository (stored on S3 / Model Registry)")
 def test_batch_prediction():
     """Kiểm tra dự đoán hàng loạt với nhiều căn nhà cùng lúc."""
     service = ModelService()
