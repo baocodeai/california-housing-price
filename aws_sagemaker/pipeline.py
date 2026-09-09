@@ -19,6 +19,7 @@ from sagemaker.workflow.pipeline import Pipeline
 from sagemaker.workflow.properties import PropertyFile
 from sagemaker.workflow.steps import ProcessingStep, TrainingStep
 from sagemaker.workflow.pipeline_context import PipelineSession
+from sagemaker.workflow.functions import JsonGet
 
 def get_pipeline(
     role: str,
@@ -145,7 +146,11 @@ def get_pipeline(
     )
 
     cond_r2 = ConditionGreaterThanOrEqualTo(
-        left=step_eval.properties.ProcessingOutputConfig.Outputs["evaluation"].S3Output.S3Uri,
+        left=JsonGet(
+            step_name=step_eval.name,
+            property_file=eval_report,
+            json_path="regression_metrics.r2_score.value"
+        ),
         right=r2_threshold
     )
 
