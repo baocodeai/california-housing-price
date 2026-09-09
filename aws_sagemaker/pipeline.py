@@ -27,7 +27,7 @@ def get_pipeline(
     base_job_prefix: str = "california-housing"
 ) -> Pipeline:
     """Định nghĩa toàn bộ đồ thị DAG của SageMaker AI Pipeline."""
-    sagemaker_session = sagemaker.Session()
+    sagemaker_session = sagemaker.Session(default_bucket=default_bucket)
 
     # 1. Pipeline Parameters
     r2_threshold = ParameterFloat(name="R2Threshold", default_value=0.80)
