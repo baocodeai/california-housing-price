@@ -9,5 +9,24 @@ phases:
       - pip install "sagemaker<3.0.0" boto3
   build:
     commands:
-      - echo "Triggering SageMaker AI Pipeline..."
-      - python aws_sagemaker/pipeline.py --role-arn $SAGEMAKER_ROLE_ARN --bucket $DATA_BUCKET --execute
+      - |
+        echo "Checking Git Release Tag to decide whether to trigger SageMaker AI Training..."
+        # Kiểm tra xem commit hiện tại có gắn Git Tag (ví dụ: v1.0, release-v1) hay không
+        GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "")
+        
+        if [ -n "$GIT_TAG" ] || [ "$FORCE_TRAIN" = "true" ]; then
+          echo "========================================================"
+          echo "PHÁT HIỆN RELEASE TAG: '$GIT_TAG' (hoặc FORCE_TRAIN=true)"
+          echo "KÍCH HOẠT SAGEMAKER AI TRAINING PIPELINE..."
+          echo "========================================================"
+          python aws_sagemaker/pipeline.py --role-arn $SAGEMAKER_ROLE_ARN --bucket $DATA_BUCKET --execute
+        else
+          echo "========================================================"
+          echo "Commit thong thuong (khong co Git Tag)."
+          echo "CHI CAP NHAT DINH NGHIA PIPELINE (UPSERT), KHONG CHAY TRAINING LAI!"
+          echo "Tiet kiem tai nguyen thanh cong."
+          echo "De train model, hay gan tag: 'git tag v1.0 && git push origin v1.0'"
+          echo "========================================================"
+          # Chỉ cập nhật định nghĩa DAG mới nhất lên SageMaker mà KHÔNG start execution
+          python aws_sagemaker/pipeline.py --role-arn $SAGEMAKER_ROLE_ARN --bucket $DATA_BUCKET
+        fi

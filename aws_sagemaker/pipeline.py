@@ -189,6 +189,20 @@ if __name__ == "__main__":
     print("Pipeline upserted successfully!")
 
     if args.execute:
+        # Kiểm tra và dừng các đợt chạy cũ còn đang Executing để tránh lãng phí tài nguyên
+        sm_client = boto3.client("sagemaker")
+        try:
+            active_executions = sm_client.list_pipeline_executions(
+                PipelineName=args.pipeline_name,
+                QueryFilters=[{"Status": "Executing"}]
+            )
+            for old_exec in active_executions.get("PipelineExecutionSummaries", []):
+                old_arn = old_exec["PipelineExecutionArn"]
+                print(f"Phat hien dot chay cu dang dang do. Tien hanh dung lai: {old_arn}")
+                sm_client.stop_pipeline_execution(PipelineExecutionArn=old_arn)
+        except Exception as e:
+            print(f"Canh bao: Khong the kiem tra hoac dung dot chay cu: {e}")
+
         print("Triggering pipeline execution...")
         execution = pipeline.start()
         print(f"Execution started! ARN: {execution.arn}")
