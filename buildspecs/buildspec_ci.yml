@@ -1,0 +1,18 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - pip install --upgrade pip
+      - pip install -e .
+      - pip install pytest flake8 pytest-cov
+  pre_build:
+    commands:
+      - echo "Running flake8 linter..."
+      - flake8 src tests aws_sagemaker --count --max-line-length=127 --statistics || true
+  build:
+    commands:
+      - echo "Running unit tests..."
+      - pytest tests/unit/ -v
