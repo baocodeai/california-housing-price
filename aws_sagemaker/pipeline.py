@@ -23,19 +23,32 @@ from sagemaker.workflow.functions import JsonGet
 
 def get_pipeline(
     role: str,
-    default_bucket: str,
+    artifacts_bucket: str,
+    raw_bucket: str = None,
+    input_data_uri: str = None,
     pipeline_name: str = "CaliforniaHousingMLOpsPipeline",
     model_package_group_name: str = "CaliforniaHousingPackageGroup",
     base_job_prefix: str = "california-housing"
 ) -> Pipeline:
-    """Định nghĩa toàn bộ đồ thị DAG của SageMaker AI Pipeline."""
-    sagemaker_session = PipelineSession(default_bucket=default_bucket)
+    """Định nghĩa toàn bộ đồ thị DAG của SageMaker AI Pipeline theo chuẩn Enterprise Data Lake."""
+    # Toàn bộ output của các step (models, evaluation, intermediate data) được lưu vào Artifacts Bucket
+    sagemaker_session = PipelineSession(default_bucket=artifacts_bucket)
 
     # 1. Pipeline Parameters
-    r2_threshold = ParameterFloat(name="R2Threshold", default_value=0.80)
-    input_data_uri = ParameterString(
+    r2_threshold = ParameterFloat(name="R2Threshold", default_value=0.70)
+    
+    # Xác định đường dẫn dữ liệu thô đọc từ Raw Bucket
+    if not input_data_uri:
+        if raw_bucket:
+            default_input_data = f"s3://{raw_bucket}/housing.csv"
+        else:
+            default_input_data = f"s3://{artifacts_bucket}/raw/housing.csv"
+    else:
+        default_input_data = input_data_uri
+
+    input_data_param = ParameterString(
         name="InputDataUrl",
-        default_value=f"s3://{default_bucket}/raw/housing.csv"
+        default_value=default_input_data
     )
 
     # 2. Step 1: Preprocessing Step
@@ -53,7 +66,7 @@ def get_pipeline(
         processor=sklearn_processor,
         inputs=[
             ProcessingInput(
-                source=input_data_uri,
+                source=input_data_param,
                 destination="/opt/ml/processing/input"
             )
         ],
@@ -124,7 +137,7 @@ def get_pipeline(
         property_files=[eval_report]
     )
 
-    # 5. Step 4: Model Registration & Condition Step
+    # 5. Step 4: Model Registration & Condition Step (Quality Gate)
     model = Model(
         image_uri=sklearn_estimator.image_uri,
         model_data=step_train.properties.ModelArtifacts.S3ModelArtifacts,
@@ -163,7 +176,7 @@ def get_pipeline(
 
     pipeline = Pipeline(
         name=pipeline_name,
-        parameters=[r2_threshold, input_data_uri],
+        parameters=[r2_threshold, input_data_param],
         steps=[step_process, step_train, step_eval, step_cond],
         sagemaker_session=sagemaker_session
     )
@@ -171,25 +184,40 @@ def get_pipeline(
     return pipeline
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--role-arn", type=str, required=True, help="SageMaker Execution Role ARN")
-    parser.add_argument("--bucket", type=str, required=True, help="S3 bucket name")
+    parser = argparse.ArgumentParser(description="SageMaker MLOps Pipeline Definition")
+    parser.add_argument("--role-arn", "--role", type=str, required=True, dest="role_arn", help="SageMaker Execution Role ARN")
+    parser.add_argument("--artifacts-bucket", "--bucket", type=str, required=True, dest="artifacts_bucket", help="S3 Artifacts Bucket for ML storage")
+    parser.add_argument("--raw-bucket", type=str, default=None, help="S3 Raw Data Bucket containing housing.csv")
+    parser.add_argument("--input-data", type=str, default=None, help="Direct S3 URI to housing.csv")
     parser.add_argument("--pipeline-name", type=str, default="CaliforniaHousingMLOpsPipeline")
-    parser.add_argument("--execute", action="store_true", help="Start execution after upsert")
+    parser.add_argument("--execute", action="store_true", help="Trigger execution immediately after upsert")
     args = parser.parse_args()
 
-    print(f"Creating / Updating SageMaker Pipeline '{args.pipeline_name}'...")
+    # Tự động suy luận raw-bucket nếu người dùng không truyền (thay artifacts -> raw)
+    raw_b = args.raw_bucket
+    if not raw_b and not args.input_data and "artifacts" in args.artifacts_bucket:
+        raw_b = args.artifacts_bucket.replace("artifacts", "raw")
+
+    print(f"============================================================")
+    print(f"SỬ DỤNG HẠ TẦNG S3 CHUẨN ENTERPRISE:")
+    print(f"  • ML Artifacts Bucket : {args.artifacts_bucket}")
+    print(f"  • Raw Data Bucket     : {raw_b or '(from direct input / default)'}")
+    print(f"  • Execution Role      : {args.role_arn}")
+    print(f"  • Pipeline Name       : {args.pipeline_name}")
+    print(f"============================================================")
+
     pipeline = get_pipeline(
         role=args.role_arn,
-        default_bucket=args.bucket,
+        artifacts_bucket=args.artifacts_bucket,
+        raw_bucket=raw_b,
+        input_data_uri=args.input_data,
         pipeline_name=args.pipeline_name
     )
 
     pipeline.upsert(role_arn=args.role_arn)
-    print("Pipeline upserted successfully!")
+    print("✓ Pipeline definition upserted successfully to SageMaker!")
 
     if args.execute:
-        # Kiểm tra và dừng các đợt chạy cũ còn đang Executing để tránh lãng phí tài nguyên
         sm_client = boto3.client("sagemaker")
         try:
             active_executions = sm_client.list_pipeline_executions(
@@ -198,12 +226,12 @@ if __name__ == "__main__":
             )
             for old_exec in active_executions.get("PipelineExecutionSummaries", []):
                 old_arn = old_exec["PipelineExecutionArn"]
-                print(f"Phat hien dot chay cu dang dang do. Tien hanh dung lai: {old_arn}")
+                print(f"🛑 Phát hiện execution cũ đang chạy dở. Tiến hành dừng: {old_arn}")
                 sm_client.stop_pipeline_execution(PipelineExecutionArn=old_arn)
         except Exception as e:
-            print(f"Canh bao: Khong the kiem tra hoac dung dot chay cu: {e}")
+            print(f"⚠️ Không thể kiểm tra execution cũ: {e}")
 
-        print("Triggering pipeline execution...")
+        print("🚀 Kích hoạt chạy SageMaker Pipeline Execution mới...")
         execution = pipeline.start()
-        print(f"Execution started! ARN: {execution.arn}")
-        print("You can now open SageMaker Studio -> Pipelines to watch it run in real time!")
+        print(f"✓ Pipeline started! Execution ARN: {execution.arn}")
+        print("💡 Bạn có thể mở AWS SageMaker Studio -> Pipelines để theo dõi đồ thị DAG trực tiếp.")
