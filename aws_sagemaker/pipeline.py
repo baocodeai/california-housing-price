@@ -2,7 +2,12 @@ import argparse
 import os
 import boto3
 import sagemaker
-from sagemaker.model import Model
+
+try:
+    from sagemaker.model import Model
+except (ImportError, ModuleNotFoundError):
+    from sagemaker import Model
+
 from sagemaker.processing import ProcessingInput, ProcessingOutput
 from sagemaker.sklearn.estimator import SKLearn
 from sagemaker.sklearn.processing import SKLearnProcessor

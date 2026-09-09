@@ -6,7 +6,7 @@ phases:
       python: 3.11
     commands:
       - pip install --upgrade pip
-      - pip install sagemaker boto3
+      - pip install "sagemaker<3.0.0" boto3
   build:
     commands:
       - echo "Triggering SageMaker AI Pipeline..."
