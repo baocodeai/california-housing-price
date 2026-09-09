@@ -137,7 +137,7 @@ def get_pipeline(
         step_args=model.register(
             content_types=["application/json"],
             response_types=["application/json"],
-            inference_instances=["ml.t3.medium", "ml.m5.large"],
+            inference_instances=["ml.m5.large", "ml.m5.xlarge"],
             transform_instances=["ml.m5.large"],
             model_package_group_name=model_package_group_name,
             approval_status="PendingManualApproval"
