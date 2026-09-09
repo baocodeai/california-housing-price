@@ -1,12 +1,14 @@
 # FRAMEWORK TRIỂN KHAI MLOPS CHUẨN DOANH NGHIỆP TRÊN AWS
-## (MLOps Universal Enterprise Playbook & Blueprint)
-> **Mục tiêu**: Tài liệu này là bộ khung chuẩn (Master Blueprint) có thể áp dụng cho **bất kỳ bài toán Machine Learning nào** (Dự đoán giá nhà, Churn Prediction, Fraud Detection, NLP, Computer Vision...) khi triển khai lên nền tảng đám mây AWS. Khi bắt đầu một dự án mới, bạn chỉ cần thay đổi biến cấu hình và logic bài toán mà không cần thiết kế lại hạ tầng từ đầu.
+## (Universal Enterprise MLOps Playbook & Blueprint - Dual Guide: Console & CLI/SDK)
+> **Mục tiêu**: Đây là bộ khung chuẩn (Master Blueprint) áp dụng cho **bất kỳ bài toán Machine Learning nào** (Dự đoán giá, Customer Churn, Fraud Detection, NLP, Computer Vision...) khi đưa lên AWS.
+> 
+> Mỗi bước đều được trình bày song song bằng **2 PHƯƠNG THỨC**:
+> - 🖥️ **Cách 1: Thao tác bằng Giao diện trực quan (AWS Console & SageMaker Studio)** — Dành cho việc cấu hình trực quan, debug nhanh, demo sản phẩm.
+> - 💻 **Cách 2: Tự động hoá bằng Mã lệnh (AWS CLI & Python SDK/Boto3)** — Dành cho việc tự động hoá 100%, Infrastructure-as-Code (IaC), script hoá cho dự án mới.
 
 ---
 
-## 🏛️ PHẦN 1: MÔ HÌNH KIẾN TRÚC MLOPS CHUẨN TỔNG QUÁT (6 KHỐI CỐT LÕI)
-
-Mọi dự án MLOps chuẩn doanh nghiệp đều vận hành dựa trên 6 khối độc lập nhưng kết nối chặt chẽ với nhau:
+## 🗺️ 1. TỔNG QUAN KIẾN TRÚC MLOPS CHUẨN (6 KHỐI CỐT LÕI)
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -64,51 +66,43 @@ Mọi dự án MLOps chuẩn doanh nghiệp đều vận hành dựa trên 6 kh�
 
 ---
 
-## 🗂️ PHẦN 2: CẤU TRÚC THƯ MỤC CHUẨN CỦA MỌI DỰ ÁN MLOPS
+## 🗂️ 2. CẤU TRÚC REPOSITORY MẪU KHI BẮT ĐẦU DỰ ÁN MỚI
 
-Khi khởi tạo bất kỳ dự án nào mới, hãy thiết lập cây thư mục chuẩn như sau:
+Khi bắt đầu một dự án Machine Learning mới, hãy tổ chức mã nguồn theo đúng cấu trúc tiêu chuẩn:
 
 ```text
 my-ml-project/
-├── .github/                       # Workflows hoặc templates
-├── buildspecs/                    # File cấu hình AWS CodeBuild
-│   ├── buildspec_ci.yml           # CI: Linter, Unit test cho code
-│   └── buildspec_ml.yml           # CD: Kiểm tra Git Tag để quyết định Train hay không
-├── aws_sagemaker/                 # Toàn bộ mã nguồn chạy trên hạ tầng AWS SageMaker
-│   ├── pipeline.py                # Định nghĩa DAG Pipeline (SageMaker Workflow SDK)
-│   └── steps/                     # Các file Script Mode thực thi độc lập trong container
-│       ├── preprocessing.py       # Bước 1: Tiền xử lý, feature engineering
-│       ├── train.py               # Bước 2: Huấn luyện thuật toán ML
+├── .github/                       # GitHub actions / templates
+├── buildspecs/                    # File chỉ dẫn cho AWS CodeBuild
+│   ├── buildspec_ci.yml           # Chạy pytest & flake8 kiểm tra mã nguồn
+│   └── buildspec_ml.yml           # Kiểm tra Git Tag để quyết định huấn luyện
+├── aws_sagemaker/                 # Chạy trên hạ tầng AWS SageMaker
+│   ├── pipeline.py                # Định nghĩa biểu đồ DAG hoàn chỉnh
+│   └── steps/                     # Script Mode chạy độc lập trong container
+│       ├── preprocessing.py       # Bước 1: Làm sạch dữ liệu, chia tập Train/Val/Test
+│       ├── train.py               # Bước 2: Huấn luyện mô hình ML
 │       ├── evaluate.py            # Bước 3: Đánh giá mô hình & xuất evaluation.json
-│       └── inference.py           # Bước 4: Hook phục vụ suy luận trên Endpoint (Serving)
-├── src/                           # Core business logic của bài toán
-│   ├── data/                      # Loaders, validators
-│   ├── features/                  # Feature transforms
-│   └── models/                    # Model wrappers
-├── tests/                         # Unit tests & Integration tests
-│   ├── unit/                      # Test tiền xử lý, test inference
-│   └── integration/               # Test toàn bộ chuỗi
-├── frontend/                      # (Tùy chọn) Giao diện demo Web React/Vue/Streamlit
-├── docs/                          # Tài liệu kiến trúc và hướng dẫn vận hành
+│       └── inference.py           # Bước 4: Hook phục vụ suy luận thời gian thực
+├── src/                           # Business logic bài toán
+├── tests/unit/                    # Bộ kiểm thử đơn vị
+├── docs/                          # Tài liệu hướng dẫn & kiến trúc
 ├── requirements.txt               # Dependencies cho môi trường dev & CI
-├── setup.py                       # Đóng gói repo thành thư viện Python (`pip install -e .`)
-└── README.md                      # Giới thiệu bài toán và runbook
+└── setup.py                       # Đóng gói package (`pip install -e .`)
 ```
 
 ---
 
-## 🚀 PHẦN 3: QUY TRÌNH 7 BƯỚC TRIỂN KHAI DỰ ÁN MỚI TỪ A ĐẾN Z
+## ⚙️ 3. BẢNG THAM SỐ BIẾN CẤU HÌNH (ENVIRONMENT VARIABLES)
 
----
-
-### BƯỚC 1: XÁC ĐỊNH BẢNG BIẾN THIẾT LẬP (ENVIRONMENT CONFIGURATION)
-*Trước khi gõ bất kỳ câu lệnh nào, hãy điền bảng thông số riêng cho dự án mới của bạn:*
+Khi tạo dự án mới, bạn chỉ cần thay đổi giá trị biến `PROJECT_NAME`:
 
 ```bash
-# ĐẶT BIẾN CHO DỰ ÁN MỚI:
+# KHAI BÁO THÔNG SỐ TOÀN CỤC CHO DỰ ÁN MỚI
 export AWS_REGION="us-east-1"
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-export PROJECT_NAME="my-project"                    # Ví dụ: customer-churn, credit-risk, fraud-detection
+export PROJECT_NAME="my-awesome-project"            # Đặt tên dự án của bạn (chữ thường, gạch nối)
+
+# CÁC BIẾN TỰ ĐỘNG SINH THEO QUY ƯỚC CHUẨN:
 export DATA_BUCKET="${PROJECT_NAME}-data-${AWS_ACCOUNT_ID}-${AWS_REGION}"
 export MANIFEST_BUCKET="${PROJECT_NAME}-manifest-${AWS_ACCOUNT_ID}-${AWS_REGION}"
 export SAGEMAKER_ROLE_NAME="${PROJECT_NAME}-SageMakerExecutionRole"
@@ -117,26 +111,69 @@ export PIPELINE_NAME="${PROJECT_NAME}-mlops-pipeline"
 export MODEL_GROUP_NAME="${PROJECT_NAME}-PackageGroup"
 export ENDPOINT_NAME="${PROJECT_NAME}-ep"
 export DYNAMODB_TABLE="${PROJECT_NAME}-predictions"
+export SNS_TOPIC_NAME="${PROJECT_NAME}-approval-topic"
 ```
 
 ---
 
-### BƯỚC 2: THIẾT LẬP LƯU TRỮ VÀ PHÂN QUYỀN IAM TẬP TRUNG (MỘT LẦN DUY NHẤT)
+# 🚀 HƯỚNG DẪN 7 BƯỚC TRIỂN KHAI CHI TIẾT (SONG SONG CONSOLE & CLI)
 
-> **Nguyên tắc quản lý tối ưu**: Tuyệt đối không để mỗi service tự bấm "Create default role" gây ra hàng chục role rác. Toàn bộ dự án chỉ cần đúng **3 IAM Roles** có tên định danh rõ ràng.
+---
 
-#### 1. Tạo S3 Buckets (Data + Manifest Versioning):
+## BƯỚC 1: THIẾT LẬP LƯU TRỮ S3 VÀ PHÂN QUYỀN IAM TẬP TRUNG
+
+> **Quy tắc vàng quản trị**: Toàn bộ dự án chỉ cần đúng **3 IAM Roles** rõ ràng. Không để mỗi dịch vụ tự động bấm "tạo role mặc định", tránh tình trạng tài khoản sinh ra hàng chục role rác không kiểm soát được quyền hạn.
+
+### 1.1. Tạo 2 S3 Buckets (Data thô & Manifest Audit)
+
+#### 🖥️ Cách 1: Thao tác trên AWS Console
+1. Truy cập **AWS Console** $\rightarrow$ Tìm dịch vụ **S3**.
+2. Bấm **Create bucket**:
+   - **Bucket name**: Nhập tên `$DATA_BUCKET`.
+   - **AWS Region**: Chọn `us-east-1`.
+   - Để các tùy chọn mặc định $\rightarrow$ Cuộn xuống cuối bấm **Create bucket**.
+3. Bấm **Create bucket** lần 2 để tạo bucket Manifest:
+   - **Bucket name**: Nhập tên `$MANIFEST_BUCKET`.
+   - Mục **Bucket Versioning**: Chọn **Enable** (Bắt buộc bật để lưu vết lịch sử dữ liệu).
+   - Bấm **Create bucket**.
+4. Vào trong `$DATA_BUCKET` $\rightarrow$ Bấm **Create folder** $\rightarrow$ Nhập `raw/` $\rightarrow$ Bấm **Create folder**.
+5. Mở thư mục `raw/` $\rightarrow$ Bấm **Upload** $\rightarrow$ Tải file dữ liệu thô (ví dụ: `data.csv`) lên.
+
+#### 💻 Cách 2: Bằng AWS CLI / Script
 ```bash
-# Bucket chứa Data thô
+# 1. Tạo Data Bucket
 aws s3api create-bucket --bucket $DATA_BUCKET --region $AWS_REGION
 
-# Bucket chứa Manifest (Phải BẬT Versioning để phục vụ audit/provenance)
+# 2. Tạo Manifest Bucket và BẬT Versioning
 aws s3api create-bucket --bucket $MANIFEST_BUCKET --region $AWS_REGION
 aws s3api put-bucket-versioning --bucket $MANIFEST_BUCKET --versioning-configuration Status=Enabled
+
+# 3. Upload file dữ liệu thô vào folder raw/
+aws s3 cp data/raw/data.csv s3://${DATA_BUCKET}/raw/data.csv
 ```
 
-#### 2. Tạo SageMaker Execution Role:
+---
+
+### 1.2. Tạo 3 IAM Roles Chuẩn Hóa
+
+#### 🖥️ Cách 1: Thao tác trên IAM Console
+1. Truy cập **IAM Console** (`https://console.aws.amazon.com/iam/`) $\rightarrow$ Chọn **Roles** $\rightarrow$ **Create role**.
+2. **Role 1: SageMaker Execution Role**:
+   - Trusted entity: **AWS service** $\rightarrow$ Use case: **SageMaker** $\rightarrow$ Bấm **Next**.
+   - Gắn 2 chính sách: `AmazonSageMakerFullAccess` và `AmazonS3FullAccess`.
+   - Đặt tên Role: `$SAGEMAKER_ROLE_NAME` $\rightarrow$ Bấm **Create role**.
+3. **Role 2: Lambda Execution Role**:
+   - Bấm **Create role** $\rightarrow$ Trusted entity: **AWS service** $\rightarrow$ Use case: **Lambda** $\rightarrow$ Bấm **Next**.
+   - Gắn 4 chính sách:
+     - `service-role/AWSLambdaBasicExecutionRole`
+     - `AmazonS3FullAccess`
+     - `AmazonSageMakerFullAccess`
+     - `AmazonDynamoDBFullAccess`
+   - Đặt tên Role: `$LAMBDA_ROLE_NAME` $\rightarrow$ Bấm **Create role**.
+
+#### 💻 Cách 2: Bằng AWS CLI
 ```bash
+# 1. Tạo SageMaker Execution Role
 cat << 'EOF' > trust-sagemaker.json
 {
   "Version": "2012-10-17",
@@ -147,10 +184,8 @@ EOF
 aws iam create-role --role-name $SAGEMAKER_ROLE_NAME --assume-role-policy-document file://trust-sagemaker.json
 aws iam attach-role-policy --role-name $SAGEMAKER_ROLE_NAME --policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
 aws iam attach-role-policy --role-name $SAGEMAKER_ROLE_NAME --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
-```
 
-#### 3. Tạo Lambda Execution Role:
-```bash
+# 2. Tạo Lambda Execution Role
 cat << 'EOF' > trust-lambda.json
 {
   "Version": "2012-10-17",
@@ -167,22 +202,30 @@ aws iam attach-role-policy --role-name $LAMBDA_ROLE_NAME --policy-arn arn:aws:ia
 
 ---
 
-### BƯỚC 3: XÂY DỰNG KHỐI DATA INGESTION & S3 EVENT TRIGGER
+## BƯỚC 2: KHỐI DATA INGESTION VÀ S3 EVENT-DRIVEN MANIFEST
 
-Khi có dữ liệu thô đẩy lên `s3://$DATA_BUCKET/raw/data.csv`:
-1. S3 gửi sự kiện sang Lambda function.
-2. Lambda tự động tính kích thước, thời gian, ETag và ghi file `manifest_*.json` vào `$MANIFEST_BUCKET`.
+Mục tiêu: Đạt chuẩn kiểm định dữ liệu doanh nghiệp (Data Provenance & Audit Trail). Mỗi khi data engineer upload file mới vào S3 `raw/`, một Lambda function tự động tính toán ETag, kích thước, timestamp và ghi log `manifest_*.json` sang Manifest Bucket.
 
-#### 1. Code Lambda Manifest Generator (`lambda_manifest.py`):
+### 2.1. Triển khai Lambda Manifest Generator
+
+#### 🖥️ Cách 1: Qua AWS Lambda Console
+1. Truy cập **AWS Lambda Console** $\rightarrow$ Bấm **Create function**:
+   - Chọn **Author from scratch**.
+   - Tên hàm: `${PROJECT_NAME}-manifest-generator`.
+   - Runtime: **Python 3.11**.
+   - Mục **Change default execution role**: Chọn *Use an existing role* $\rightarrow$ Chọn `$LAMBDA_ROLE_NAME`.
+   - Bấm **Create function**.
+2. Ở tab **Code**, mở file `lambda_function.py`, dán đoạn mã sau:
 ```python
 import json, urllib.parse, boto3, os
 from datetime import datetime
 
 s3 = boto3.client('s3')
-MANIFEST_BUCKET = os.environ['MANIFEST_BUCKET']
+MANIFEST_BUCKET = os.environ.get('MANIFEST_BUCKET')
 PROJECT_NAME = os.environ.get('PROJECT_NAME', 'ml-project')
 
 def lambda_handler(event, context):
+    print("Received event:", json.dumps(event))
     for record in event.get('Records', []):
         src_bucket = record['s3']['bucket']['name']
         src_key = urllib.parse.unquote_plus(record['s3']['object']['key'])
@@ -196,15 +239,54 @@ def lambda_handler(event, context):
             "status": "READY_FOR_TRAINING"
         }
         
+        ts_str = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        manifest_key = f"manifests/manifest_{ts_str}.json"
+        
+        s3.put_object(
+            Bucket=MANIFEST_BUCKET,
+            Key=manifest_key,
+            Body=json.dumps(manifest, indent=2),
+            ContentType='application/json'
+        )
+        print(f"Logged manifest: s3://{MANIFEST_BUCKET}/{manifest_key}")
+        
+    return {"statusCode": 200, "body": "Manifest logged"}
+```
+3. Vào tab **Configuration** $\rightarrow$ **Environment variables** $\rightarrow$ Bấm **Edit**:
+   - Thêm `MANIFEST_BUCKET` = Giá trị `$MANIFEST_BUCKET`.
+   - Thêm `PROJECT_NAME` = Giá trị `$PROJECT_NAME`.
+   - Bấm **Save**.
+4. Bấm **Deploy** (màu cam/xanh).
+
+#### 💻 Cách 2: Bằng AWS CLI
+```bash
+cat << 'EOF' > lambda_manifest.py
+import json, urllib.parse, boto3, os
+from datetime import datetime
+
+s3 = boto3.client('s3')
+MANIFEST_BUCKET = os.environ.get('MANIFEST_BUCKET')
+PROJECT_NAME = os.environ.get('PROJECT_NAME', 'ml-project')
+
+def lambda_handler(event, context):
+    for record in event.get('Records', []):
+        src_bucket = record['s3']['bucket']['name']
+        src_key = urllib.parse.unquote_plus(record['s3']['object']['key'])
+        manifest = {
+            "project": PROJECT_NAME,
+            "source_s3_uri": f"s3://{src_bucket}/{src_key}",
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "size_bytes": record['s3']['object']['size'],
+            "etag": record['s3']['object']['eTag'],
+            "status": "READY_FOR_TRAINING"
+        }
         key = f"manifests/manifest_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
         s3.put_object(Bucket=MANIFEST_BUCKET, Key=key, Body=json.dumps(manifest, indent=2), ContentType='application/json')
-        print(f"Logged manifest: s3://{MANIFEST_BUCKET}/{key}")
     return {"statusCode": 200, "body": "OK"}
-```
+EOF
 
-#### 2. Deploy Lambda & Gắn Event Notification:
-```bash
 zip -j lambda_manifest.zip lambda_manifest.py
+
 aws lambda create-function \
     --function-name "${PROJECT_NAME}-manifest-generator" \
     --runtime python3.11 \
@@ -213,8 +295,26 @@ aws lambda create-function \
     --zip-file fileb://lambda_manifest.zip \
     --environment Variables="{MANIFEST_BUCKET=${MANIFEST_BUCKET},PROJECT_NAME=${PROJECT_NAME}}" \
     --region $AWS_REGION
+```
 
-# Cấp quyền gọi từ S3
+---
+
+### 2.2. Gắn S3 Event Notification kích hoạt Lambda
+
+#### 🖥️ Cách 1: Qua S3 Console
+1. Mở **S3 Console** $\rightarrow$ Bấm vào `$DATA_BUCKET`.
+2. Chọn tab **Properties** $\rightarrow$ Cuộn xuống mục **Event notifications** $\rightarrow$ Bấm **Create event notification**.
+3. Cấu hình:
+   - Event name: `TriggerManifestOnDataUpload`.
+   - Prefix: `raw/`
+   - Suffix: `.csv`
+   - Event types: Tích chọn `All object create events` (`s3:ObjectCreated:*`).
+   - Destination: Chọn **Lambda function** $\rightarrow$ Chọn `${PROJECT_NAME}-manifest-generator`.
+4. Bấm **Save changes**.
+
+#### 💻 Cách 2: Bằng AWS CLI
+```bash
+# 1. Cấp quyền cho S3 gọi Lambda
 aws lambda add-permission \
     --function-name "${PROJECT_NAME}-manifest-generator" \
     --statement-id AllowS3Invocation \
@@ -223,96 +323,128 @@ aws lambda add-permission \
     --source-arn arn:aws:s3:::${DATA_BUCKET} \
     --region $AWS_REGION
 
-# Gắn Trigger S3 Event
+# 2. Cấu hình Event Notification
 cat << EOF > s3_notification.json
 {
   "LambdaFunctionConfigurations": [{
     "LambdaFunctionArn": "arn:aws:lambda:${AWS_REGION}:${AWS_ACCOUNT_ID}:function:${PROJECT_NAME}-manifest-generator",
     "Events": ["s3:ObjectCreated:*"],
-    "Filter": { "Key": { "FilterRules": [{ "Name": "prefix", "Value": "raw/" }] } }
+    "Filter": { "Key": { "FilterRules": [{ "Name": "prefix", "Value": "raw/" }, { "Name": "suffix", "Value": ".csv" }] } }
   }]
 }
 EOF
-aws s3api put-bucket-notification-configuration --bucket $DATA_BUCKET --notification-configuration file://s3_notification.json
+
+aws s3api put-bucket-notification-configuration \
+    --bucket $DATA_BUCKET \
+    --notification-configuration file://s3_notification.json
 ```
 
 ---
 
-### BƯỚC 4: THIẾT KẾ MÃ NGUỒN SAGEMAKER AI DAG (SCRIPT MODE)
+## BƯỚC 3: XÂY DỰNG KHỐI HUẤN LUYỆN SAGEMAKER AI DAG (SCRIPT MODE)
 
-> **Điểm cốt lõi**: Giữ cho các step chạy độc lập dưới dạng **Script Mode** để có thể debug cục bộ và tái sử dụng container chính hãng của AWS (`SKLearn`, `PyTorch`, `XGBoost`, `TensorFlow`).
+> **Mô hình Script Mode chuẩn**: Code ML được chia thành 4 scripts độc lập trong thư mục `aws_sagemaker/steps/`.
 
-#### 1. Bước Tiền xử lý (`aws_sagemaker/steps/preprocessing.py`):
-- Đọc raw data từ `/opt/ml/processing/input/`.
-- Thực hiện Data Cleaning, Missing Value Imputation, Categorical Encoding, Feature Scaling.
-- Chia dữ liệu (ví dụ: Train 70%, Val 15%, Test 15%).
-- **QUAN TRỌNG**: Lưu cả file `preprocessor.joblib` (hoặc pipeline tiền xử lý) cùng với dữ liệu npy/csv vào `/opt/ml/processing/output/`.
+### 3.1. Thiết kế 4 Scripts Cốt Lõi:
+1. **`preprocessing.py`**:
+   - Đọc dữ liệu từ `/opt/ml/processing/input/`.
+   - Xử lý Missing Value, Mã hoá phân loại, Chuẩn hoá dữ liệu.
+   - Tách Train/Val/Test (ví dụ: 70% / 15% / 15%).
+   - **BẮT BUỘC**: Lưu cả file `preprocessor.joblib` vào `/opt/ml/processing/output/`.
+2. **`train.py`**:
+   - Đọc dữ liệu Train từ `$SM_CHANNEL_TRAIN`.
+   - Huấn luyện thuật toán cốt lõi.
+   - Lưu `model.joblib` vào `/opt/ml/model/`.
+   - **BÍ QUYẾT DOANH NGHIỆP**: Copy file `preprocessor.joblib` vào cùng thư mục `/opt/ml/model/` để tạo mô hình tự thân (Self-Contained Model).
+3. **`evaluate.py`**:
+   - Đọc mô hình đã huấn luyện và dữ liệu Test (unseen data).
+   - Đo lường chỉ số chuẩn ($R^2$, RMSE, MAE đối với Regression; AUC, F1 đối với Classification).
+   - Xuất file chuẩn `/opt/ml/processing/evaluation/evaluation.json`:
+   ```json
+   { "regression_metrics": { "r2_score": { "value": 0.82 } } }
+   ```
+4. **`inference.py`**:
+   - Cung cấp 4 hook: `model_fn`, `input_fn`, `predict_fn`, `output_fn` để container Serverless Endpoint phục vụ suy luận thời gian thực.
 
-#### 2. Bước Huấn luyện Model (`aws_sagemaker/steps/train.py`):
-- Đọc train data từ môi trường `$SM_CHANNEL_TRAIN` (`/opt/ml/input/data/train`).
-- Huấn luyện thuật toán của bài toán đó (Stacking, LightGBM, XGBoost, Deep Learning...).
-- Đóng gói file mô hình `model.joblib` vào `/opt/ml/model/`.
-- **BÍ QUYẾT DOANH NGHIỆP**: Copy file `preprocessor.joblib` từ thư mục train vào `/opt/ml/model/`. Điều này giúp mô hình trở nên **tự thân hoàn chỉnh (Self-Contained)**: Container Endpoint khi deploy chỉ cần nhận chuỗi JSON từ client và tự động qua tiền xử lý rồi dự đoán, không cần client phải biến đổi feature!
+---
 
-#### 3. Bước Đánh giá Model (`aws_sagemaker/steps/evaluate.py`):
-- Đọc `model.tar.gz` và dữ liệu Test (15% unseen data).
-- Tính toán metrics đặc thù của bài toán:
-  - Bài toán Hồi quy (Regression): $R^2$, RMSE, MAE.
-  - Bài toán Phân loại (Classification): AUC, F1-Score, Precision, Recall.
-- Xuất file chuẩn `/opt/ml/processing/evaluation/evaluation.json`:
-```json
-{
-  "regression_metrics": {
-    "r2_score": { "value": 0.82 }
-  }
-}
-```
+### 3.2. Script `aws_sagemaker/pipeline.py` (Định nghĩa DAG)
 
-#### 4. Bước Serving Hook (`aws_sagemaker/steps/inference.py`):
-Cung cấp 4 hàm hook chuẩn cho SageMaker Hosting container:
-```python
-def model_fn(model_dir):
-    # Load model và preprocessor từ model_dir
-    return {"model": joblib.load(os.path.join(model_dir, "model.joblib")),
-            "prep": joblib.load(os.path.join(model_dir, "preprocessor.joblib"))}
-
-def input_fn(body, content_type):
-    # Parse payload JSON từ client
-    return pd.DataFrame(json.loads(body)["instances"])
-
-def predict_fn(df, artifacts):
-    # Biến đổi feature và dự đoán
-    return artifacts["model"].predict(artifacts["prep"].transform(df))
-
-def output_fn(predictions, accept):
-    # Trả kết quả JSON về cho client
-    return json.dumps({"predictions": predictions.tolist()}), "application/json"
-```
-
-#### 5. Kết nối toàn bộ DAG trong `aws_sagemaker/pipeline.py`:
+File này kết nối 4 scripts trên thành một đồ thị có hướng (DAG) bằng SageMaker Python SDK:
 - Dùng `ProcessingStep` cho Preprocessing và Evaluation.
 - Dùng `TrainingStep` cho Training.
-- Dùng `PropertyFile` và **`JsonGet`** để trích xuất số float từ `evaluation.json`:
-  ```python
-  cond_metric = ConditionGreaterThanOrEqualTo(
-      left=JsonGet(step_name=step_eval.name, property_file=eval_report, json_path="regression_metrics.r2_score.value"),
-      right=threshold
-  )
-  ```
+- Dùng `PropertyFile` và **`JsonGet`** để trích xuất số float từ JSON metric:
+```python
+cond_metric = ConditionGreaterThanOrEqualTo(
+    left=JsonGet(
+        step_name=step_eval.name,
+        property_file=eval_report,
+        json_path="regression_metrics.r2_score.value"
+    ),
+    right=r2_threshold
+)
+```
 - Dùng `ModelStep` để đăng ký vào **Model Registry** với `approval_status="PendingManualApproval"`.
-- **Cơ chế Auto-Cancellation**: Trước khi `pipeline.start()`, tự động tìm các lần chạy cũ đang `Executing` và gọi `stop_pipeline_execution` để chống lãng phí tài nguyên!
+- **Cơ chế Auto-Cancellation**: Trước khi gọi `pipeline.start()`, tự động tìm và huỷ các đợt chạy cũ đang `Executing` để tránh tốn tài nguyên.
 
 ---
 
-### BƯỚC 5: TỐI ƯU HOÁ QUY TRÌNH CI/CD & KIỂM SOÁT CHI PHÍ (COST GOVERNANCE)
+### 3.3. Theo dõi và Vận hành DAG trên Giao diện Studio vs CLI
 
-> **Vấn đề thường gặp**: Mỗi khi lập trình viên sửa code (sửa doc, sửa CSS frontend, viết unit test...) và push lên GitHub, hệ thống lại kích hoạt SageMaker Pipeline huấn luyện tốn hàng chục USD.
+#### 🖥️ Cách 1: Trên giao diện Amazon SageMaker Studio
+1. Mở **Amazon SageMaker AI Console** $\rightarrow$ Chọn **SageMaker Studio** ở menu trái $\rightarrow$ Bấm **Open Studio**.
+2. Tại thanh điều hướng bên trái Studio, bấm vào biểu tượng **Pipelines**.
+3. Bấm chọn pipeline `${PROJECT_NAME}-mlops-pipeline`:
+   - Tab **Graph**: Xem biểu đồ trực quan DAG (các nút đổi màu xanh lá khi hoàn thành).
+   - Tab **Executions**: Xem danh sách các lần chạy.
+   - Bấm vào từng Step để xem chi tiết: Input/Output S3 URIs, logs CloudWatch thời gian thực, thông số máy ảo instance.
+4. Kiểm tra **Model Registry**:
+   - Menu trái Studio chọn **Models** $\rightarrow$ **Model Registry** $\rightarrow$ Bấm vào `${PROJECT_NAME}-PackageGroup`.
+   - Xem Version 1: Xem bảng chỉ số metrics $R^2$, RMSE, MAE.
 
-#### 💡 GIẢI PHÁP CHUẨN: "TAG-TRIGGERED RETRAINING"
-- **Push code lên `main` thường xuyên**: Chỉ chạy CI (Flake8 linting + Pytest unit tests) và cập nhật định nghĩa Pipeline (`pipeline.upsert()`), **TUYỆT ĐỐI KHÔNG BẬT MÁY ẢO HUẤN LUYỆN**.
-- **Chỉ huấn luyện thật khi**: Tạo Git Release Tag (ví dụ: `v1.0.0`, `v2.0.0`).
+#### 💻 Cách 2: Bằng AWS CLI / Python SDK
+```bash
+# Liệt kê danh sách Pipelines
+aws sagemaker list-pipelines --region $AWS_REGION
 
-#### Cấu hình `buildspecs/buildspec_ml.yml`:
+# Xem danh sách các đợt chạy của Pipeline
+aws sagemaker list-pipeline-executions --pipeline-name $PIPELINE_NAME --region $AWS_REGION
+
+# Xem trạng thái từng step trong một đợt chạy cụ thể
+aws sagemaker list-pipeline-execution-steps --pipeline-execution-arn <EXECUTION_ARN> --region $AWS_REGION
+```
+
+---
+
+## BƯỚC 4: THIẾT LẬP CI/CD VÀ KIỂM SOÁT CHI PHÍ (COST GOVERNANCE)
+
+> **Nguyên tắc tiết kiệm chi phí tối thượng**: 
+> - Khi lập trình viên push code thường xuyên lên `main` (sửa doc, sửa CSS, refactor, viết test): **CHỈ CHẠY CI (PYTEST & LINTER) VÀ UPSERT ĐỊNH NGHĨA DAG, TUYỆT ĐỐI KHÔNG BẬT MÁY ẢO HUẤN LUYỆN!**
+> - **CHỈ HUẤN LUYỆN MODEL THẬT KHI**: Có gắn Git Release Tag (ví dụ: `git tag v1.0.0 && git push origin v1.0.0`).
+
+### 4.1. Chuẩn bị 2 File Buildspec trong thư mục `buildspecs/`
+
+- **File `buildspecs/buildspec_ci.yml`** (Kiểm tra chất lượng code):
+```yaml
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - pip install --upgrade pip
+      - pip install -e .
+      - pip install pytest flake8
+  pre_build:
+    commands:
+      - flake8 src tests aws_sagemaker --count --max-line-length=127 --statistics || true
+  build:
+    commands:
+      - echo "Chay Unit Tests..."
+      - pytest tests/unit/ -v
+```
+
+- **File `buildspecs/buildspec_ml.yml`** (Kiểm tra Git Tag để quyết định huấn luyện):
 ```yaml
 version: 0.2
 phases:
@@ -329,40 +461,136 @@ phases:
         GIT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "")
         
         if [ -n "$GIT_TAG" ] || [ "$FORCE_TRAIN" = "true" ]; then
-          echo ">>> PHÁT HIỆN RELEASE TAG: '$GIT_TAG'. TIẾN HÀNH TRAIN MODEL..."
+          echo ">>> PHAT HIEN RELEASE TAG: '$GIT_TAG'. TIEN HANH HUAN LUYEN MODEL..."
           python aws_sagemaker/pipeline.py --role-arn $SAGEMAKER_ROLE_ARN --bucket $DATA_BUCKET --execute
         else
-          echo ">>> Push commit thường (Không có Git Tag)."
-          echo ">>> CHỈ CẬP NHẬT ĐỊNH NGHĨA DAG (UPSERT), KHÔNG CHẠY HUẤN LUYỆN. TIẾT KIỆM TÀI NGUYÊN!"
+          echo ">>> Commit thuong (khong co Git Tag)."
+          echo ">>> CHI CAP NHAT DINH NGHIA DAG, KHONG BAT MAY AO HUAN LUYEN. TIET KIEM TAI NGUYEN!"
           python aws_sagemaker/pipeline.py --role-arn $SAGEMAKER_ROLE_ARN --bucket $DATA_BUCKET
         fi
 ```
 
-#### Thiết lập CodePipeline 4 Stages:
-1. **Source**: GitHub V2 Connector.
-2. **Build (CI)**: Chạy `buildspecs/buildspec_ci.yml` (chạy pytest).
-3. **ML_Pipeline**: Chạy `buildspecs/buildspec_ml.yml` (kiểm tra tag).
-4. **Approval**: Manual Approval kết nối với Amazon SNS Topic để gửi email cho Lead duyệt mô hình.
+---
+
+### 4.2. Thiết lập SNS Topic cho Manual Approval
+
+#### 🖥️ Cách 1: Qua SNS Console
+1. Mở **Amazon SNS Console** $\rightarrow$ Chọn **Topics** $\rightarrow$ Bấm **Create topic**.
+2. Type: **Standard**, Name: `$SNS_TOPIC_NAME` $\rightarrow$ Bấm **Create topic**.
+3. Bấm **Create subscription**:
+   - Protocol: **Email**.
+   - Endpoint: Nhập email nhận duyệt của bạn $\rightarrow$ Bấm **Create subscription**.
+4. **QUAN TRỌNG**: Mở email cá nhân bấm vào liên kết **Confirm subscription**.
+
+#### 💻 Cách 2: Bằng AWS CLI
+```bash
+aws sns create-topic --name $SNS_TOPIC_NAME --region $AWS_REGION
+
+aws sns subscribe \
+    --topic-arn arn:aws:sns:${AWS_REGION}:${AWS_ACCOUNT_ID}:${SNS_TOPIC_NAME} \
+    --protocol email \
+    --notification-endpoint your-email@example.com \
+    --region $AWS_REGION
+```
 
 ---
 
-### BƯỚC 6: TRIỂN KHAI SERVERLESS SERVING ENDPOINT & CONSUMER LAYER
+### 4.3. Tạo CodePipeline 4 Stages Hoàn Chỉnh
 
-Sau khi Lead phê duyệt Model trong **SageMaker Model Registry**:
+#### 🖥️ Thao tác trên AWS CodePipeline Console
+1. Truy cập **AWS CodePipeline Console** $\rightarrow$ Bấm **Create pipeline**:
+   - Pipeline name: `$PIPELINE_NAME`.
+   - Service role: Chọn **New service role** $\rightarrow$ Bấm **Next**.
+2. **Stage 1 (Source)**:
+   - Source provider: Chọn **GitHub (Version 2)** (kết nối repo GitHub của bạn).
+   - Repository: Chọn repo dự án, Branch: `main` $\rightarrow$ Bấm **Next**.
+3. **Stage 2 (Build / CI)**:
+   - Provider: **AWS CodeBuild**.
+   - Bấm *Create project* đặt tên `${PROJECT_NAME}-ci` $\rightarrow$ Chọn file buildspec `buildspecs/buildspec_ci.yml` $\rightarrow$ Bấm **Continue to CodePipeline**.
+   - Bấm **Next**.
+4. Chọn **Skip deploy stage** $\rightarrow$ Bấm **Create pipeline**.
+5. **Thêm 2 Stage tiếp theo (Edit Pipeline)**:
+   - Bấm nút **Edit** ở đầu trang pipeline:
+   - Sau Stage Build $\rightarrow$ Bấm **+ Add stage** đặt tên: `ML_Pipeline`.
+     - Action name: `Run_SageMaker_Pipeline`.
+     - Action provider: **AWS CodeBuild**.
+     - Bấm *Create project* đặt tên `${PROJECT_NAME}-ml-trigger` trỏ vào `buildspecs/buildspec_ml.yml`.
+     - Khai báo Environment Variables trong CodeBuild này:
+       - `SAGEMAKER_ROLE_ARN` = ARN của `$SAGEMAKER_ROLE_NAME`.
+       - `DATA_BUCKET` = Giá trị `$DATA_BUCKET`.
+   - Sau Stage ML_Pipeline $\rightarrow$ Bấm **+ Add stage** đặt tên: `Approval`.
+     - Action name: `Lead_Approve_Model`.
+     - Action provider: **Manual approval**.
+     - SNS topic ARN: Chọn topic ARN vừa tạo ở bước 4.2.
+   - Bấm **Save** để lưu Pipeline.
+6. **Cấp quyền SNS cho CodePipeline Service Role**:
+   - Vào IAM Console $\rightarrow$ Tìm Role của CodePipeline vừa sinh ra $\rightarrow$ Thêm Inline Policy cho phép `sns:Publish` để gửi email thành công.
 
-#### 1. Tạo Serverless Endpoint (Tiết kiệm 90% chi phí so với Real-time):
+---
+
+## BƯỚC 5: PHÊ DUYỆT VÀ TRIỂN KHAI SERVERLESS SERVING ENDPOINT
+
+Mục tiêu: Đưa mô hình đã được Lead duyệt ra Serverless Serving Endpoint. Cơ chế Serverless tự động mở rộng theo lưu lượng và **tự động tắt (scale-to-zero) khi không có request**, giúp tiết kiệm hơn 90% chi phí máy chủ hàng tháng.
+
+### 5.1. Phê duyệt Model trong Model Registry
+
+#### 🖥️ Cách 1: Qua SageMaker Studio
+1. Mở **SageMaker Studio** $\rightarrow$ Chọn **Models** $\rightarrow$ **Model Registry**.
+2. Nhấp vào `$MODEL_GROUP_NAME` $\rightarrow$ Chọn Version mới nhất.
+3. Quan sát các chỉ số đánh giá.
+4. Bấm nút **Update status** ở góc phải $\rightarrow$ Chọn trạng thái **Approved** $\rightarrow$ Bấm **Update status**.
+
+#### 💻 Cách 2: Bằng AWS CLI
 ```bash
-# 1. Lấy Package ARN mới nhất
-PACKAGE_ARN=$(aws sagemaker list-model-packages --model-package-group-name $MODEL_GROUP_NAME --query "ModelPackageSummaryList[0].ModelPackageArn" --output text --region $AWS_REGION)
+# Lấy Model Package ARN mới nhất
+PACKAGE_ARN=$(aws sagemaker list-model-packages \
+    --model-package-group-name $MODEL_GROUP_NAME \
+    --query "ModelPackageSummaryList[0].ModelPackageArn" \
+    --output text \
+    --region $AWS_REGION)
 
-# 2. Tạo Model
+# Phê duyệt Model Package
+aws sagemaker update-model-package \
+    --model-package-arn $PACKAGE_ARN \
+    --model-approval-status Approved \
+    --approval-description "Approved for production release" \
+    --region $AWS_REGION
+```
+
+---
+
+### 5.2. Khởi tạo Serverless Endpoint
+
+#### 🖥️ Cách 1: Qua SageMaker Console (Deployments & Inference)
+1. Mở **SageMaker AI Console** $\rightarrow$ Menu trái chọn **Inference** (hoặc **Deployments & inference**).
+2. **Tạo Model**:
+   - Chọn **Models** $\rightarrow$ Bấm **Create model**.
+   - Model name: `${PROJECT_NAME}-model-v1`.
+   - Primary container: Chọn **Use a model package from Model Registry** $\rightarrow$ Chọn package đã Approved.
+   - IAM role: Chọn `$SAGEMAKER_ROLE_NAME` $\rightarrow$ Bấm **Create model**.
+3. **Tạo Endpoint Configuration**:
+   - Chọn **Endpoint configurations** $\rightarrow$ Bấm **Create endpoint configuration**.
+   - Name: `${PROJECT_NAME}-serverless-cfg`.
+   - Chọn loại: **Serverless**.
+   - Bấm **Add model** $\rightarrow$ Chọn `${PROJECT_NAME}-model-v1`.
+   - Đặt **Memory size**: `2048 MB` (2 GB), **Max concurrency**: `10`.
+   - Bấm **Create endpoint configuration**.
+4. **Tạo Endpoint**:
+   - Chọn **Endpoints** $\rightarrow$ Bấm **Create endpoint**.
+   - Endpoint name: `$ENDPOINT_NAME`.
+   - Chọn configuration vừa tạo $\rightarrow$ Bấm **Create endpoint**.
+   - Chờ 2-3 phút đến khi trạng thái hiển thị **`InService`**.
+
+#### 💻 Cách 2: Bằng AWS CLI
+```bash
+# 1. Tạo Model
 aws sagemaker create-model \
     --model-name "${PROJECT_NAME}-model-v1" \
     --primary-container ModelPackageName=$PACKAGE_ARN \
     --execution-role-arn arn:aws:iam::${AWS_ACCOUNT_ID}:role/${SAGEMAKER_ROLE_NAME} \
     --region $AWS_REGION
 
-# 3. Tạo Endpoint Config Serverless (Memory 2048MB, MaxConcurrency 10)
+# 2. Tạo Endpoint Config Serverless
 aws sagemaker create-endpoint-config \
     --endpoint-config-name "${PROJECT_NAME}-serverless-cfg" \
     --production-variants '[{
@@ -372,14 +600,32 @@ aws sagemaker create-endpoint-config \
     }]' \
     --region $AWS_REGION
 
-# 4. Tạo Endpoint
+# 3. Tạo Endpoint
 aws sagemaker create-endpoint \
     --endpoint-name $ENDPOINT_NAME \
     --endpoint-config-name "${PROJECT_NAME}-serverless-cfg" \
     --region $AWS_REGION
+
+# Kiểm tra trạng thái đến khi trả về 'InService'
+aws sagemaker describe-endpoint --endpoint-name $ENDPOINT_NAME --query "EndpointStatus" --output text --region $AWS_REGION
 ```
 
-#### 2. Tạo DynamoDB Table lưu trữ Audit Logs & Feedback Loop:
+---
+
+## BƯỚC 6: CONSUMER LAYER & CONTINUOUS FEEDBACK LOOP
+
+Mục tiêu: Xây dựng tầng giao tiếp chuẩn REST API bảo mật cho client (React Web/Mobile), lưu vết toàn bộ dữ liệu dự đoán và phản hồi thực tế vào DynamoDB để phục vụ giám sát Data Drift và tái huấn luyện mô hình.
+
+### 6.1. Tạo DynamoDB Table lưu trữ Prediction & Feedback Logs
+
+#### 🖥️ Qua DynamoDB Console
+1. Truy cập **Amazon DynamoDB Console** $\rightarrow$ Chọn **Tables** $\rightarrow$ Bấm **Create table**.
+2. Table name: `$DYNAMODB_TABLE`.
+3. Partition key: `prediction_id` (Kiểu: `String`).
+4. Capacity mode: Chọn **On-demand** (chỉ trả phí theo số lượng request thực tế).
+5. Bấm **Create table**.
+
+#### 💻 Qua AWS CLI
 ```bash
 aws dynamodb create-table \
     --table-name $DYNAMODB_TABLE \
@@ -389,49 +635,253 @@ aws dynamodb create-table \
     --region $AWS_REGION
 ```
 
-#### 3. Tạo Lambda API Proxy (Hỗ trợ 2 routes: `/predict` và `/feedback`):
-Lambda này nhận request từ API Gateway $\rightarrow$ gọi SageMaker Endpoint $\rightarrow$ lưu toàn bộ input features, dự đoán và `actual_value` vào DynamoDB.
+---
 
-#### 4. Tạo Amazon API Gateway (HTTP API):
-Tạo HTTP API với CORS bật sẵn (`*`), liên kết với Lambda API Proxy để cấp link HTTPS công khai cho Web Frontend / Mobile App.
+### 6.2. Tạo AWS Lambda API Proxy Function
+
+Lambda function `${PROJECT_NAME}-api-proxy` nhận request từ API Gateway, gọi SageMaker Serverless Endpoint và ghi log vào DynamoDB.
+
+#### 🖥️ Qua AWS Lambda Console
+1. Mở **AWS Lambda Console** $\rightarrow$ Bấm **Create function**:
+   - Tên hàm: `${PROJECT_NAME}-api-proxy`.
+   - Runtime: **Python 3.11**.
+   - Execution role: Chọn *Use an existing role* $\rightarrow$ Chọn `$LAMBDA_ROLE_NAME`.
+   - Bấm **Create function**.
+2. Dán đoạn mã sau vào tab **Code**:
+```python
+import json, uuid, os, boto3
+from datetime import datetime
+
+sm_runtime = boto3.client('sagemaker-runtime')
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table(os.environ.get('DYNAMODB_TABLE'))
+ENDPOINT_NAME = os.environ.get('ENDPOINT_NAME')
+
+def lambda_handler(event, context):
+    method = event.get('requestContext', {}).get('http', {}).get('method', '')
+    path = event.get('rawPath', '')
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "*"
+    }
+
+    if method == 'OPTIONS':
+        return {"statusCode": 200, "headers": headers, "body": "{}"}
+
+    # Route 1: POST /predict (Dự đoán và lưu log DynamoDB)
+    if path.endswith('/predict') and method == 'POST':
+        body = json.loads(event.get('body', '{}'))
+        instances = body.get('instances', [])
+        
+        resp = sm_runtime.invoke_endpoint(
+            EndpointName=ENDPOINT_NAME,
+            ContentType='application/json',
+            Body=json.dumps({"instances": instances})
+        )
+        res_body = json.loads(resp['Body'].read().decode())
+        pred_val = res_body['predictions'][0]
+        
+        pred_id = str(uuid.uuid4())
+        table.put_item(
+            Item={
+                'prediction_id': pred_id,
+                'timestamp': datetime.utcnow().isoformat() + "Z",
+                'features': json.dumps(instances[0]),
+                'predicted_value': str(pred_val),
+                'actual_value': None
+            }
+        )
+        return {
+            "statusCode": 200,
+            "headers": headers,
+            "body": json.dumps({"prediction_id": pred_id, "predicted_value": pred_val})
+        }
+
+    # Route 2: POST /feedback (Ghi nhận giá trị thực tế của khách hàng)
+    elif path.endswith('/feedback') and method == 'POST':
+        body = json.loads(event.get('body', '{}'))
+        pred_id = body.get('prediction_id')
+        actual_val = body.get('actual_value')
+        
+        table.update_item(
+            Key={'prediction_id': pred_id},
+            UpdateExpression="SET actual_value = :val, feedback_timestamp = :ts",
+            ExpressionAttributeValues={
+                ':val': str(actual_val),
+                ':ts': datetime.utcnow().isoformat() + "Z"
+            }
+        )
+        return {
+            "statusCode": 200,
+            "headers": headers,
+            "body": json.dumps({"message": "Feedback saved", "prediction_id": pred_id})
+        }
+
+    return {"statusCode": 404, "headers": headers, "body": json.dumps({"error": "Not Found"})}
+```
+3. Tab **Configuration** $\rightarrow$ **Environment variables**:
+   - `ENDPOINT_NAME` = Giá trị `$ENDPOINT_NAME`.
+   - `DYNAMODB_TABLE` = Giá trị `$DYNAMODB_TABLE`.
+   - Bấm **Save**.
+4. Bấm **Deploy**.
+
+#### 💻 Qua AWS CLI
+```bash
+cat << 'EOF' > lambda_proxy.py
+import json, uuid, os, boto3
+from datetime import datetime
+
+sm_runtime = boto3.client('sagemaker-runtime')
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table(os.environ.get('DYNAMODB_TABLE'))
+ENDPOINT_NAME = os.environ.get('ENDPOINT_NAME')
+
+def lambda_handler(event, context):
+    method = event.get('requestContext', {}).get('http', {}).get('method', '')
+    path = event.get('rawPath', '')
+    headers = {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "*"}
+    if method == 'OPTIONS': return {"statusCode": 200, "headers": headers, "body": "{}"}
+    if path.endswith('/predict') and method == 'POST':
+        body = json.loads(event.get('body', '{}'))
+        instances = body.get('instances', [])
+        resp = sm_runtime.invoke_endpoint(EndpointName=ENDPOINT_NAME, ContentType='application/json', Body=json.dumps({"instances": instances}))
+        pred_val = json.loads(resp['Body'].read().decode())['predictions'][0]
+        pred_id = str(uuid.uuid4())
+        table.put_item(Item={'prediction_id': pred_id, 'timestamp': datetime.utcnow().isoformat() + "Z", 'features': json.dumps(instances[0]), 'predicted_value': str(pred_val), 'actual_value': None})
+        return {"statusCode": 200, "headers": headers, "body": json.dumps({"prediction_id": pred_id, "predicted_value": pred_val})}
+    elif path.endswith('/feedback') and method == 'POST':
+        body = json.loads(event.get('body', '{}'))
+        table.update_item(Key={'prediction_id': body.get('prediction_id')}, UpdateExpression="SET actual_value = :val, feedback_timestamp = :ts", ExpressionAttributeValues={':val': str(body.get('actual_value')), ':ts': datetime.utcnow().isoformat() + "Z"})
+        return {"statusCode": 200, "headers": headers, "body": json.dumps({"message": "Feedback saved"})}
+    return {"statusCode": 404, "headers": headers, "body": json.dumps({"error": "Not Found"})}
+EOF
+
+zip -j lambda_proxy.zip lambda_proxy.py
+
+aws lambda create-function \
+    --function-name "${PROJECT_NAME}-api-proxy" \
+    --runtime python3.11 \
+    --role arn:aws:iam::${AWS_ACCOUNT_ID}:role/${LAMBDA_ROLE_NAME} \
+    --handler lambda_proxy.lambda_handler \
+    --zip-file fileb://lambda_proxy.zip \
+    --environment Variables="{ENDPOINT_NAME=${ENDPOINT_NAME},DYNAMODB_TABLE=${DYNAMODB_TABLE}}" \
+    --region $AWS_REGION
+```
 
 ---
 
-### BƯỚC 7: VẬN HÀNH GIÁM SÁT (MONITORING) & RETRAINING LOOP TỰ ĐỘNG
+### 6.3. Tạo Amazon API Gateway (HTTP API)
 
-1. **CloudWatch Alarms**:
-   - Cảnh báo tỷ lệ lỗi 5XX trên Endpoint (`Invocation5XXErrors >= 1`).
-   - Cảnh báo độ trễ mô hình (`ModelLatency > 200ms`).
-2. **Vòng lặp Tái huấn luyện tự động (Continuous Retraining Loop)**:
-   ```text
-   Người dùng Web ──> Gửi thực tế qua POST /feedback
-                            │
-                            ▼
-                DynamoDB Table tích luỹ bản ghi
-                            │
-                            ▼ (Khi đạt 1.000 mẫu mới hoặc định kỳ cuối tuần)
-                Export DynamoDB ──> S3: raw/new_data.csv
-                            │
-                            ▼
-                S3 Event kích hoạt CodePipeline với cờ FORCE_TRAIN=true
-                            │
-                            ▼
-                SageMaker AI tự động huấn luyện phiên bản Model mới!
-   ```
+#### 🖥️ Qua API Gateway Console
+1. Truy cập **API Gateway Console** $\rightarrow$ Mục **HTTP API** $\rightarrow$ Bấm **Build**:
+   - API name: `${PROJECT_NAME}-api`.
+   - Bấm **Next**.
+2. **Configure routes**:
+   - Thêm route 1: Method `POST`, Resource path: `/predict`.
+   - Thêm route 2: Method `POST`, Resource path: `/feedback`.
+   - Bấm **Next**.
+3. Để Stage mặc định `$default` (Auto-deploy: ON) $\rightarrow$ Bấm **Next** $\rightarrow$ Bấm **Create**.
+4. **Tạo Integration**:
+   - Menu trái chọn **Integrations** $\rightarrow$ Bấm **Manage integrations** $\rightarrow$ **Create**:
+     - Integration type: **Lambda function**.
+     - Lambda function: Chọn `${PROJECT_NAME}-api-proxy`.
+     - Bấm **Create**.
+   - Gắn integration này vào cả 2 route `/predict` và `/feedback`.
+5. **Bật CORS**:
+   - Menu trái chọn **CORS** $\rightarrow$ Bấm **Configure**:
+     - Access-Control-Allow-Origin: `*`
+     - Access-Control-Allow-Methods: `POST, OPTIONS`
+     - Access-Control-Allow-Headers: `*`
+   - Bấm **Save**.
+6. Sao chép lại đường link **Invoke URL** (ví dụ: `https://xyz.execute-api.us-east-1.amazonaws.com`).
+
+#### 💻 Qua AWS CLI
+```bash
+API_ID=$(aws apigatewayv2 create-api \
+    --name "${PROJECT_NAME}-api" \
+    --protocol-type HTTP \
+    --cors-configuration '{"AllowOrigins":["*"],"AllowMethods":["POST","OPTIONS"],"AllowHeaders":["*"]}' \
+    --query "ApiId" --output text --region $AWS_REGION)
+
+INTEGRATION_ID=$(aws apigatewayv2 create-integration \
+    --api-id $API_ID \
+    --integration-type AWS_PROXY \
+    --integration-uri arn:aws:lambda:${AWS_REGION}:${AWS_ACCOUNT_ID}:function:${PROJECT_NAME}-api-proxy \
+    --payload-format-version "2.0" \
+    --query "IntegrationId" --output text --region $AWS_REGION)
+
+aws apigatewayv2 create-route --api-id $API_ID --route-key "POST /predict" --target integrations/$INTEGRATION_ID --region $AWS_REGION
+aws apigatewayv2 create-route --api-id $API_ID --route-key "POST /feedback" --target integrations/$INTEGRATION_ID --region $AWS_REGION
+aws apigatewayv2 create-stage --api-id $API_ID --stage-name '$default' --auto-deploy --region $AWS_REGION
+
+aws lambda add-permission \
+    --function-name "${PROJECT_NAME}-api-proxy" \
+    --statement-id AllowApiGateway \
+    --action lambda:InvokeFunction \
+    --principal apigateway.amazonaws.com \
+    --source-arn "arn:aws:execute-api:${AWS_REGION}:${AWS_ACCOUNT_ID}:${API_ID}/*" \
+    --region $AWS_REGION
+
+echo ">>> API Gateway Invoke URL: https://${API_ID}.execute-api.${AWS_REGION}.amazonaws.com"
+```
 
 ---
 
-## 📑 PHẦN 4: CHECKLIST BÀN GIAO DỰ ÁN MLOPS (PRODUCTION ACCEPTANCE)
+## BƯỚC 7: GIÁM SÁT (MONITORING) & TỰ ĐỘNG RETRAINING LOOP
 
-Khi áp dụng khung này cho bất kỳ dự án nào, hãy tích đủ 10 tiêu chí nghiệm thu sau:
+### 7.1. Cấu hình Cảnh báo CloudWatch Alarms
+Cảnh báo qua email khi Serverless Endpoint gặp lỗi hoặc độ trễ cao:
+```bash
+aws cloudwatch put-metric-alarm \
+    --alarm-name "${PROJECT_NAME}-endpoint-5xx-alarm" \
+    --metric-name Invocation5XXErrors \
+    --namespace AWS/SageMaker \
+    --statistic Sum \
+    --period 60 \
+    --threshold 1 \
+    --comparison-operator GreaterThanOrEqualToThreshold \
+    --evaluation-periods 1 \
+    --dimensions Name=EndpointName,Value=$ENDPOINT_NAME \
+    --alarm-actions arn:aws:sns:${AWS_REGION}:${AWS_ACCOUNT_ID}:${SNS_TOPIC_NAME} \
+    --region $AWS_REGION
+```
 
-- [ ] **1. IAM Roles chuẩn hoá**: Không dùng role cá nhân, có 3 role định danh rõ ràng (`SageMakerRole`, `LambdaRole`, `CodePipelineRole`).
-- [ ] **2. Data Provenance**: Upload file thô vào S3 có sinh file `manifest_*.json` lưu kích thước và ETag.
-- [ ] **3. CI Code Quality**: CodeBuild CI chạy `flake8` và `pytest` đạt 100% trước khi chạm vào hạ tầng.
-- [ ] **4. Cost Governance**: Push commit thông thường KHÔNG tự ý bật máy ảo SageMaker; chỉ kích hoạt khi có Git Tag (`git tag v*.*`).
-- [ ] **5. Concurrency Management**: Khi có đợt chạy mới, hệ thống tự huỷ đợt chạy cũ đang dang dở để tránh chạy trùng.
-- [ ] **6. Quality Gate**: Mô hình chỉ được đưa vào Model Registry nếu đạt ngưỡng chất lượng ($R^2 \ge \text{threshold}$ hoặc $\text{AUC} \ge \text{threshold}$).
-- [ ] **7. Human-in-the-loop**: Lead nhận email SNS và bấm duyệt (Approve) trên CodePipeline hoặc Studio.
-- [ ] **8. Serverless Endpoint**: Endpoint hoạt động ở trạng thái `InService`, tự scale về 0 khi không có tải.
-- [ ] **9. Feedback Logging**: Mọi dự đoán và phản hồi thực tế được ghi nhận đầy đủ vào DynamoDB.
-- [ ] **10. CloudWatch Alarms**: Cấu hình cảnh báo lỗi 5XX và độ trễ về email người quản trị.
+### 7.2. Vòng lặp Tái Huấn Luyện Tự Động (Continuous Retraining Loop)
+```text
+Client gửi dữ liệu thực tế ──> POST /feedback ──> DynamoDB Table lưu trữ
+                                                        │
+                                                        ▼ (Khi tích luỹ đủ 1.000 mẫu)
+                                            Export dữ liệu mới ra CSV
+                                                        │
+                                                        ▼
+                                            Upload S3: raw/retrain_data.csv
+                                                        │
+                                                        ▼
+                                            S3 Event Notification
+                                                        │
+                                                        ▼
+                                            Kích hoạt CodePipeline với FORCE_TRAIN=true
+                                                        │
+                                                        ▼
+                                    SageMaker AI tự động huấn luyện Model Version mới!
+```
+
+---
+
+## 🏁 BẢNG CHECKLIST NGHIỆM THU DỰ ÁN MLOPS (PRODUCTION ACCEPTANCE)
+
+| STT | Hạng mục kiểm tra | Cách thực hiện | Kết quả đạt yêu cầu |
+| :---: | :--- | :--- | :--- |
+| **1** | **IAM Roles Tập Trung** | Kiểm tra IAM Console | Chỉ có đúng 3 Role chuẩn định danh, không có role rác. |
+| **2** | **Data Audit Trail** | Upload data thô vào S3 | Sinh file `manifests/manifest_*.json` trong Manifest bucket. |
+| **3** | **CI Test Tự Động** | Push code lên nhánh `main` | CodeBuild CI chạy `flake8` và `pytest` đạt 100%. |
+| **4** | **Cost Governance** | Push commit sửa code thường | CodePipeline chỉ chạy CI, **KHÔNG** bật máy ảo SageMaker. |
+| **5** | **Release Retrain Trigger** | Chạy `git tag v1.0.0 && git push origin v1.0.0` | SageMaker AI Pipeline tự động kích hoạt huấn luyện! |
+| **6** | **Auto-Cancellation** | Kích hoạt đợt chạy mới | Hệ thống tự động huỷ đợt chạy cũ đang dang dở. |
+| **7** | **Quality Gate** | Kiểm tra `evaluation.json` | Chỉ đăng ký Model Registry nếu metric vượt ngưỡng ($R^2 \ge 0.80$). |
+| **8** | **Human Approval** | Kiểm tra hộp thư Email | Nhận email SNS và Lead phê duyệt thành công trên CodePipeline. |
+| **9** | **Serverless Serving** | Gọi `POST /predict` | Trả kết quả JSON, tự scale về 0 khi rảnh rỗi. |
+| **10**| **Audit & Feedback Log**| Kiểm tra DynamoDB Table | Lưu vết input features, kết quả dự đoán và giá trị `actual_value`. |
